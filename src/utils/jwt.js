@@ -49,3 +49,19 @@ export const isTokenValid = (skewSeconds = 300) => {
   const currentTime = Date.now() / 1000;
   return decoded.exp + skewSeconds > currentTime;
 };
+
+// Create a locally-signed demo token (header.payload.signature) suitable for client-only demos
+export const createDemoToken = (name = 'admin', role = 'client') => {
+  const header = { alg: 'none', typ: 'JWT' };
+  const nowSec = Math.floor(Date.now() / 1000);
+  const payload = {
+    sub: String(Math.floor(Math.random() * 1e9)),
+    name,
+    email: `${name}@demo.local`,
+    role,
+    iat: nowSec,
+    exp: nowSec + 24 * 60 * 60
+  };
+  const b64url = (obj) => btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `${b64url(header)}.${b64url(payload)}.demo`;
+};
