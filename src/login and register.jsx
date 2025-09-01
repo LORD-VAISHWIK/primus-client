@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { getApiBase, showToast } from "./utils/api";
+import { getApiBase, setApiBase, presetApiBases, showToast } from "./utils/api";
 import { createDemoToken } from "./utils/jwt";
 
 // Google Web Client ID provided by user for Google Sign-In
@@ -281,6 +281,7 @@ const LoginView = ({ setScreen, onLogin }) => {
     const [password, setPassword] = useState("admin123");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
+    const [apiBase, setApiBaseState] = useState(getApiBase());
 
     useEffect(() => {
         const onMessage = (e) => {
@@ -334,6 +335,20 @@ const LoginView = ({ setScreen, onLogin }) => {
         <div className="animate-slide-in">
             <div className="text-center mb-8"><h2 className="primus-heading text-6xl font-black tracking-wider">PRIMUS</h2></div>
             <p className="text-center text-sm text-gray-200 mb-6">Log in with your Primus credentials</p>
+            <div className="text-xs text-gray-300 mb-3 flex items-center gap-2 justify-center">
+                <span>Server:</span>
+                <select
+                  value={apiBase}
+                  onChange={(e)=>{ setApiBase(e.target.value); setApiBaseState(getApiBase()); }}
+                  className="bg-black/30 border border-white/10 rounded px-2 py-1 text-gray-200"
+                >
+                  {presetApiBases().map(b => (<option key={b} value={b}>{b}</option>))}
+                </select>
+                <button
+                  className="underline text-[#20B2AA]"
+                  onClick={()=>{ const v = prompt('Backend URL', getApiBase()); if (v){ setApiBase(v); setApiBaseState(getApiBase()); }} }
+                >Change</button>
+            </div>
             <div className="space-y-4">
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><AtSymbolIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="text" placeholder="Email or Username" value={emailOrUsername} onChange={(e)=>setEmailOrUsername(e.target.value)} className="flex-1 px-3 py-2 bg-transparent outline-none placeholder-gray-400" /></div>
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><LockClosedIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="password" placeholder="Password" value={password} onChange={(e)=>setPassword(e.target.value)} className="flex-1 px-3 py-2 bg-transparent outline-none placeholder-gray-400" /></div>

@@ -1,7 +1,23 @@
-const ENV_BASE = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL || "https://primus-admin-gjk0laltj-vaishwiks-projects.vercel.app";
+const ENV_BASE = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL || null;
+
+function computeDefaultBase() {
+  try {
+    const host = typeof window !== 'undefined' ? (window.location?.hostname || '') : '';
+    if (!host || host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8000';
+    const parts = host.split('.');
+    if (parts.length >= 2) {
+      const apex = parts.slice(-2).join('.');
+      return `https://api.${apex}`;
+    }
+  } catch {}
+  return 'http://localhost:8000';
+}
 
 export function getApiBase() {
-  return localStorage.getItem("primus_api_base") || ENV_BASE;
+  const stored = localStorage.getItem("primus_api_base");
+  if (stored) return stored;
+  if (ENV_BASE) return ENV_BASE;
+  return computeDefaultBase();
 }
 
 export function setApiBase(url) {
@@ -42,14 +58,25 @@ export async function postWithQueue(url, data, config = {}) {
   };
   try {
     const res = await attempt();
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return await res.json().catch(()=>({}));
+    if (res.ok) return await res.json().catch(()=>({}));
+    if (res.status === 0 || res.status >= 500) {
+      const q = readQueue();
+      q.push({ url, data, headers: config.headers || {} });
+      writeQueue(q);
+      showToast('Server unreachable. Action queued and will retry.');
+      return null;
+    }
+    const text = await res.text().catch(()=>null);
+    throw new Error(text || ('HTTP ' + res.status));
   } catch (e) {
-    const q = readQueue();
-    q.push({ url, data, headers: config.headers || {} });
-    writeQueue(q);
-    showToast('Action queued (offline). Will retry when online.');
-    return null;
+    if (e && (e.name === 'TypeError' || /Failed to fetch/i.test(String(e.message||'')))) {
+      const q = readQueue();
+      q.push({ url, data, headers: config.headers || {} });
+      writeQueue(q);
+      showToast('Network error. Action queued and will retry.');
+      return null;
+    }
+    throw e;
   }
 }
 
@@ -67,6 +94,11 @@ export async function flushQueue() {
   }
   writeQueue(next);
   if (next.length === 0) showToast('All queued actions sent.');
+}
+
+export function presetApiBases() {
+  const presets = [computeDefaultBase(), 'http://localhost:8000'];
+  return Array.from(new Set(presets));
 }
 
 
