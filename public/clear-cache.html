@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Cache</title>
+</head>
+<body>
+    <h1>Clearing Cache...</h1>
+    <script>
+        localStorage.removeItem('primus_api_base');
+        localStorage.setItem('primus_api_base', 'https://primus-admin-nl67cws7l-vaishwiks-projects.vercel.app');
+        alert('Cache cleared! Redirecting to home...');
+        window.location.href = '/';
+    </script>
+</body>
+</html>
