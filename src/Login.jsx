@@ -8,8 +8,8 @@ import { createDemoToken } from "./utils/jwt";
 // Build login URL at submit time; avoid global mutation
 
 export default function Login({ goToRegister, onLogin }) {
-  const [email, setEmail] = useState("admin");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [apiBaseShown, setApiBaseShown] = useState(getApiBase());
@@ -126,7 +126,7 @@ export default function Login({ goToRegister, onLogin }) {
           <p className="text-gray-400">Ultra-fast Gaming Client Login</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-6" autoComplete="off">
           <div className="text-xs text-gray-400 -mt-2 mb-2">
             Server: <span className="text-primary">{apiBaseShown}</span>
             <button
@@ -152,6 +152,7 @@ export default function Login({ goToRegister, onLogin }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 bg-transparent border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent transition-all"
+              autoComplete="new-email"
               placeholder="Enter your email"
               required
             />
@@ -166,6 +167,7 @@ export default function Login({ goToRegister, onLogin }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 bg-transparent border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent transition-all"
+              autoComplete="new-password"
               placeholder="Enter your password"
               required
             />

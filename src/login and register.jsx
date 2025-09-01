@@ -277,8 +277,8 @@ const SocialRegisterView = ({ setView, service }) => {
 };
 
 const LoginView = ({ setScreen, onLogin }) => {
-    const [emailOrUsername, setEmailOrUsername] = useState("admin");
-    const [password, setPassword] = useState("admin123");
+    const [emailOrUsername, setEmailOrUsername] = useState("");
+    const [password, setPassword] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
     const [apiBase, setApiBaseState] = useState(getApiBase());
@@ -349,9 +349,9 @@ const LoginView = ({ setScreen, onLogin }) => {
                   onClick={()=>{ const v = prompt('Backend URL', getApiBase()); if (v){ setApiBase(v); setApiBaseState(getApiBase()); }} }
                 >Change</button>
             </div>
-            <div className="space-y-4">
-                <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><AtSymbolIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="text" placeholder="Email or Username" value={emailOrUsername} onChange={(e)=>setEmailOrUsername(e.target.value)} className="flex-1 px-3 py-2 bg-transparent outline-none placeholder-gray-400" /></div>
-                <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><LockClosedIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="password" placeholder="Password" value={password} onChange={(e)=>setPassword(e.target.value)} className="flex-1 px-3 py-2 bg-transparent outline-none placeholder-gray-400" /></div>
+            <div className="space-y-4" autoComplete="off">
+                <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><AtSymbolIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="text" placeholder="Email or Username" value={emailOrUsername} onChange={(e)=>setEmailOrUsername(e.target.value)} className="flex-1 px-3 py-2 bg-transparent outline-none placeholder-gray-400" autoComplete="new-username" /></div>
+                <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><LockClosedIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="password" placeholder="Password" value={password} onChange={(e)=>setPassword(e.target.value)} className="flex-1 px-3 py-2 bg-transparent outline-none placeholder-gray-400" autoComplete="new-password" /></div>
                 {error && (<div className="bg-red-500/80 text-white text-center py-2 rounded-md">{error}</div>)}
                 <button type="button" disabled={busy} onClick={submit} className="w-full bg-[#20B2AA] hover:bg-[#1aa19b] text-white font-semibold py-2 rounded-md transition-colors shadow-lg hover:shadow-[#20B2AA]/40 disabled:opacity-60">{busy ? 'Signing in...' : 'Log in'}</button>
             </div>
