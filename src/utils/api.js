@@ -16,8 +16,11 @@ function computeDefaultBase() {
 export function getApiBase() {
   const stored = localStorage.getItem("primus_api_base");
   if (stored) return stored;
+  // Prefer domain-derived default so it works on any device without manual setup
+  const derived = computeDefaultBase();
+  if (derived) return derived;
   if (ENV_BASE) return ENV_BASE;
-  return computeDefaultBase();
+  return 'http://localhost:8000';
 }
 
 export function setApiBase(url) {
