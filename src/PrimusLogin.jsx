@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { getApiBase, setApiBase } from "./utils/api";
-import { createDemoToken } from "./utils/jwt";
+ 
 
 export default function PrimusLogin({ onLogin, allowedRoles }) {
   const [username, setUsername] = useState("admin");
@@ -46,10 +46,7 @@ export default function PrimusLogin({ onLogin, allowedRoles }) {
       }
       if (typeof onLogin === "function") onLogin(token);
     } catch (err) {
-      // Demo fallback: allow offline login
-      const demoToken = createDemoToken('admin', 'admin');
-      try { localStorage.setItem('primus_jwt', demoToken); } catch {}
-      if (typeof onLogin === 'function') onLogin(demoToken);
+      setError(normalizeError(err));
     } finally {
       setLoading(false);
     }

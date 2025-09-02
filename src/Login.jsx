@@ -3,7 +3,6 @@ import { getUserFromToken, isTokenValid } from "./utils/jwt";
 import axios from "axios";
 import { initFirebase, loginWithGoogleFlex, completeGoogleRedirect, loadConfigFromEnvOrFile } from "./utils/firebase";
 import { getApiBase, setApiBase } from "./utils/api";
-import { createDemoToken } from "./utils/jwt";
 
 // Build login URL at submit time; avoid global mutation
 
@@ -79,10 +78,7 @@ export default function Login({ goToRegister, onLogin }) {
       onLogin(token); // This will trigger the App component to update user state
       
     } catch (err) {
-      // Demo fallback: proceed with a locally-generated token
-      const demoToken = createDemoToken('admin', 'client');
-      try { localStorage.setItem('primus_jwt', demoToken); } catch {}
-      onLogin(demoToken);
+      setError(normalizeError(err));
     }
     setLoading(false);
   };

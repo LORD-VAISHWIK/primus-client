@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { getApiBase, setApiBase, presetApiBases, showToast } from "./utils/api";
-import { createDemoToken } from "./utils/jwt";
+ 
 
 // Google Web Client ID provided by user for Google Sign-In
 const GOOGLE_WEB_CLIENT_ID = "496813374696-q63fi7dr27q34hvgk6d8tolsv8rtitdg.apps.googleusercontent.com";
@@ -321,11 +321,12 @@ const LoginView = ({ setScreen, onLogin }) => {
             localStorage.setItem("primus_jwt", token);
             if (typeof onLogin === 'function') onLogin(token);
         } catch (err) {
-            // Demo fallback: generate a local token so the app can proceed offline
-            const demoToken = createDemoToken('admin', 'client');
-            try { localStorage.setItem('primus_jwt', demoToken); } catch {}
-            if (typeof onLogin === 'function') onLogin(demoToken);
-            showToast('Demo login (offline)');
+            const d = err?.response?.data; const detail = d?.detail ?? d;
+            let msg = detail || err?.message || 'Login failed';
+            if (Array.isArray(detail)) msg = detail.map(x => (x?.msg || String(x))).join('; ');
+            if (typeof detail === 'object' && detail) msg = detail.msg || detail.error || JSON.stringify(detail);
+            setError(msg);
+            showToast('Login failed');
         } finally {
             setBusy(false);
         }
