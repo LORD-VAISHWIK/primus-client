@@ -170,7 +170,6 @@ const ManualRegisterView = ({ setView, setScreen }) => {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
-<<<<<<< HEAD
     const [otpSent, setOtpSent] = useState(false);
     const [otpVerified, setOtpVerified] = useState(false);
     const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -241,11 +240,9 @@ const ManualRegisterView = ({ setView, setScreen }) => {
     const submit = async () => {
         setError("");
         if (!otpVerified) { setError("Please verify your email first"); return; }
-=======
 
     const submit = async () => {
         setError("");
->>>>>>> 868653eff794ed4994070e51b417534b5911fcfa
         if (!email || !password) { setError("Email and password are required"); return; }
         if (password !== confirmPassword) { setError("Passwords do not match"); return; }
         try {
@@ -278,7 +275,6 @@ const ManualRegisterView = ({ setView, setScreen }) => {
             <p className="text-center text-sm text-gray-400 mb-6">Please enter your user details.</p>
             <div className="space-y-3">
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><UserIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="text" placeholder="Username" value={username} onChange={(e)=>setUsername(e.target.value)} className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
-<<<<<<< HEAD
                 
                 {/* Email Input with Send OTP Button */}
                 <div className="space-y-2">
@@ -341,9 +337,7 @@ const ManualRegisterView = ({ setView, setScreen }) => {
                     )}
                 </div>
 
-=======
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><AtSymbolIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="email" placeholder="Email Address" value={email} onChange={(e)=>setEmail(e.target.value)} className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
->>>>>>> 868653eff794ed4994070e51b417534b5911fcfa
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><LockClosedIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="password" placeholder="Password" value={password} onChange={(e)=>setPassword(e.target.value)} className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><LockClosedIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><CalendarIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="text" placeholder="Date of birth (DD/MM/YYYY)" className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
@@ -354,11 +348,8 @@ const ManualRegisterView = ({ setView, setScreen }) => {
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><PhoneIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="tel" placeholder="Phone number (Optional)" className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
                 <div className="pt-2"><label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" className="form-checkbox bg-black/20 border-white/20 text-[#20B2AA] focus:ring-[#20B2AA]" /> I agree to the <a href="#" className="text-[#20B2AA] hover:underline">Terms Of Service</a> and <a href="#" className="text-[#20B2AA] hover:underline">Privacy Policy</a></label></div>
                 {error && (<div className="bg-red-500/80 text-white text-center py-2 rounded-md">{error}</div>)}
-<<<<<<< HEAD
                 <div className="pt-2"><button type="button" disabled={busy || !otpVerified} onClick={submit} className="w-full bg-[#20B2AA] hover:bg-[#1aa19b] text-white font-semibold py-2.5 rounded-md transition-colors shadow-lg hover:shadow-[#20B2AA]/40 disabled:opacity-60">{busy ? 'Creating...' : 'Create account'}</button></div>
-=======
                 <div className="pt-2"><button type="button" disabled={busy} onClick={submit} className="w-full bg-[#20B2AA] hover:bg-[#1aa19b] text-white font-semibold py-2.5 rounded-md transition-colors shadow-lg hover:shadow-[#20B2AA]/40 disabled:opacity-60">{busy ? 'Creating...' : 'Create account'}</button></div>
->>>>>>> 868653eff794ed4994070e51b417534b5911fcfa
             </div>
         </div>
     );

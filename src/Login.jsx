@@ -180,9 +180,7 @@ export default function Login({ goToRegister, onLogin }) {
             disabled={loading}
             className="w-full bg-primary/90 text-white font-semibold py-3 px-4 rounded-lg hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-<<<<<<< HEAD
             Sign In
-=======
             {loading ? (
               <div className="flex items-center justify-center">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
@@ -191,7 +189,6 @@ export default function Login({ goToRegister, onLogin }) {
             ) : (
               "Sign In"
             )}
->>>>>>> 868653eff794ed4994070e51b417534b5911fcfa
           </button>
 
           {/* Social logins disabled */}
@@ -209,7 +206,6 @@ export default function Login({ goToRegister, onLogin }) {
           </p>
         </div>
       </div>
-<<<<<<< HEAD
 
       {/* Full-screen Loading Overlay */}
       {loading && (
@@ -222,8 +218,6 @@ export default function Login({ goToRegister, onLogin }) {
           <div className="login-loading-subtext">Please wait while we authenticate you...</div>
         </div>
       )}
-=======
->>>>>>> 868653eff794ed4994070e51b417534b5911fcfa
     </div>
   );
 }

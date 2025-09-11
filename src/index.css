@@ -138,7 +138,6 @@ body { margin: 0; font-family: Segoe UI, -apple-system, system-ui, Roboto, Ubunt
   100% { background-position: 200% 0; }
 }
 
-<<<<<<< HEAD
 /* Loading Animation */
 @keyframes loginSpin {
   0% { transform: rotate(0deg); }
@@ -235,8 +234,6 @@ body { margin: 0; font-family: Segoe UI, -apple-system, system-ui, Roboto, Ubunt
   animation: fadeInUp 0.5s ease-out 0.2s both;
 }
 
-=======
->>>>>>> 868653eff794ed4994070e51b417534b5911fcfa
 .card-animated {
   position: relative;
   background: #1a1d21;
