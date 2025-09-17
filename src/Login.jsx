@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getUserFromToken, isTokenValid } from "./utils/jwt";
 import axios from "axios";
-import { initFirebase, loginWithGoogleFlex, completeGoogleRedirect, loadConfigFromEnvOrFile } from "./utils/firebase";
+// Removed Firebase login; using backend OAuth and GIS in other UIs
 import { getApiBase, setApiBase } from "./utils/api";
 
 // Build login URL at submit time; avoid global mutation
@@ -16,23 +16,7 @@ export default function Login({ goToRegister, onLogin }) {
   useEffect(() => {
     // Show current backend; allow changing via button. No automatic prompt on mount (avoids blank screens)
     setApiBaseShown(getApiBase());
-    (async () => {
-      try {
-        const cfg = await loadConfigFromEnvOrFile();
-        initFirebase(cfg);
-        const done = await completeGoogleRedirect();
-        if (done?.idToken) {
-          const API_URL = getApiBase().replace(/\/$/, "") + "/api/auth/login/firebase";
-          // If Firebase login disabled server-side, skip exchange
-          try {
-            const res = await axios.post(API_URL, { id_token: done.idToken }, { timeout: 15000, headers: { 'Content-Type': 'application/json' } });
-            const token = res.data.access_token;
-            localStorage.setItem("primus_jwt", token);
-          } catch {}
-          if (typeof window !== 'undefined') window.location.reload();
-        }
-      } catch {}
-    })();
+    // No Firebase: nothing to do on mount
   }, []);
 
   const normalizeError = (err) => {
@@ -84,26 +68,8 @@ export default function Login({ goToRegister, onLogin }) {
   };
 
   const handleGoogle = async () => {
-    try {
-      const cfg = await loadConfigFromEnvOrFile();
-      initFirebase(cfg);
-      const result = await loginWithGoogleFlex();
-      if (result.method === 'redirect') {
-        // Flow continues after redirect in useEffect above
-        return;
-      }
-      if (result.idToken) {
-        const API_URL = getApiBase().replace(/\/$/, "") + "/api/auth/login/firebase";
-        try {
-          const res = await axios.post(API_URL, { id_token: result.idToken }, { timeout: 15000, headers: { 'Content-Type': 'application/json' } });
-          const token = res.data.access_token;
-          localStorage.setItem("primus_jwt", token);
-        } catch {}
-        if (typeof window !== 'undefined') window.location.reload();
-      }
-    } catch (e) {
-      setError(normalizeError(e));
-    }
+    // No Firebase handler here. Google login is handled in Primus web client UI using GIS.
+    setError("Google login not available in this client.");
   };
 
   return (

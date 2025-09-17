@@ -4,7 +4,7 @@ import { getApiBase, setApiBase, presetApiBases, showToast } from "./utils/api";
  
 
 // Google Web Client ID provided by user for Google Sign-In
-const GOOGLE_WEB_CLIENT_ID = "496813374696-q63fi7dr27q34hvgk6d8tolsv8rtitdg.apps.googleusercontent.com";
+const GOOGLE_WEB_CLIENT_ID = "760371470519-ma43dvpeogg1e3nf4ud5l8q1hnqlr155.apps.googleusercontent.com";
 
 let _gsiLoading = null;
 function loadGsiScript() {
@@ -271,9 +271,7 @@ const ManualRegisterView = ({ setView, setScreen }) => {
             <h2 className="text-center text-2xl font-bold text-gray-200 mb-1">Register manually</h2>
             <p className="text-center text-sm text-gray-400 mb-6">Please enter your user details.</p>
             <div className="space-y-3">
-                <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><UserIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="text" placeholder="Username" value={username} onChange={(e)=>setUsername(e.target.value)} className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
-                
-                {/* Email Input with Send OTP Button */}
+                {/* Email Input with Send OTP Button (first) */}
                 <div className="space-y-2">
                     <div className="flex gap-2">
                         <div className="flex-1 flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]">
@@ -339,7 +337,8 @@ const ManualRegisterView = ({ setView, setScreen }) => {
                         </div>
                     )}
                 </div>
-
+                {/* Username below */}
+                <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><UserIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="text" placeholder="Username" value={username} onChange={(e)=>setUsername(e.target.value)} className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><LockClosedIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="password" placeholder="Password" value={password} onChange={(e)=>setPassword(e.target.value)} className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><LockClosedIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><CalendarIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="text" placeholder="Date of birth (DD/MM/YYYY)" className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
