@@ -276,7 +276,16 @@ const ManualRegisterView = ({ setView, setScreen }) => {
                 {/* Email Input with Send OTP Button */}
                 <div className="space-y-2">
                     <div className="flex gap-2">
-                        {/* Single email field is shown above with Send OTP. Duplicate removed. */}
+                        <div className="flex-1 flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]">
+                            <AtSymbolIcon className="w-5 h-5 text-gray-400 ml-3" />
+                            <input
+                                type="email"
+                                placeholder="Email Address"
+                                value={email}
+                                onChange={(e)=>setEmail(e.target.value)}
+                                className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"
+                            />
+                        </div>
                         {!otpVerified && (
                             <button 
                                 type="button" 
