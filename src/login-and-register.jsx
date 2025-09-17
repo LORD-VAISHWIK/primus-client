@@ -334,7 +334,6 @@ const ManualRegisterView = ({ setView, setScreen }) => {
                     )}
                 </div>
 
-                <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><AtSymbolIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="email" placeholder="Email Address" value={email} onChange={(e)=>setEmail(e.target.value)} className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><LockClosedIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="password" placeholder="Password" value={password} onChange={(e)=>setPassword(e.target.value)} className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><LockClosedIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
                 <div className="flex items-center bg-black/20 rounded-md border border-white/10 focus-within:ring-2 focus-within:ring-[#20B2AA]"><CalendarIcon className="w-5 h-5 text-gray-400 ml-3" /><input type="text" placeholder="Date of birth (DD/MM/YYYY)" className="flex-1 p-2.5 bg-transparent outline-none placeholder-gray-400"/></div>
@@ -346,7 +345,6 @@ const ManualRegisterView = ({ setView, setScreen }) => {
                 <div className="pt-2"><label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" className="form-checkbox bg-black/20 border-white/20 text-[#20B2AA] focus:ring-[#20B2AA]" /> I agree to the <a href="#" className="text-[#20B2AA] hover:underline">Terms Of Service</a> and <a href="#" className="text-[#20B2AA] hover:underline">Privacy Policy</a></label></div>
                 {error && (<div className="bg-red-500/80 text-white text-center py-2 rounded-md">{error}</div>)}
                 <div className="pt-2"><button type="button" disabled={busy || !otpVerified} onClick={submit} className="w-full bg-[#20B2AA] hover:bg-[#1aa19b] text-white font-semibold py-2.5 rounded-md transition-colors shadow-lg hover:shadow-[#20B2AA]/40 disabled:opacity-60">{busy ? 'Creating...' : 'Create account'}</button></div>
-                <div className="pt-2"><button type="button" disabled={busy} onClick={submit} className="w-full bg-[#20B2AA] hover:bg-[#1aa19b] text-white font-semibold py-2.5 rounded-md transition-colors shadow-lg hover:shadow-[#20B2AA]/40 disabled:opacity-60">{busy ? 'Creating...' : 'Create account'}</button></div>
             </div>
         </div>
     );
