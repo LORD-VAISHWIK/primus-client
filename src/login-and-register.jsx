@@ -240,9 +240,6 @@ const ManualRegisterView = ({ setView, setScreen }) => {
     const submit = async () => {
         setError("");
         if (!otpVerified) { setError("Please verify your email first"); return; }
-
-    const submit = async () => {
-        setError("");
         if (!email || !password) { setError("Email and password are required"); return; }
         if (password !== confirmPassword) { setError("Passwords do not match"); return; }
         try {

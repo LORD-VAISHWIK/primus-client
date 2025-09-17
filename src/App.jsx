@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import AuthCombined from "./login and register";
+import AuthCombined from "./login-and-register";
 import Dashboard, { AppHeader } from "./Dashboard";
 import Games from "./games";
 import { getUserFromToken, isTokenValid } from "./utils/jwt";
