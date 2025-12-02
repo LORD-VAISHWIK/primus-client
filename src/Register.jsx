@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { getApiBase, setApiBase } from "./utils/api";
+import { getApiBase, setApiBase, csrfHeaders } from "./utils/api";
 
 export default function Register({ goToLogin }) {
   const [name, setName] = useState("");
@@ -22,7 +22,11 @@ export default function Register({ goToLogin }) {
       params.append('email', email);
       params.append('password', password);
       params.append('role', role);
-      await axios.post(url, params, { timeout: 15000, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      await axios.post(
+        url,
+        params,
+        { timeout: 15000, headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...csrfHeaders() } }
+      );
       setSuccess("Registration complete! You can now log in.");
       setTimeout(goToLogin, 1200);
     } catch (err) {

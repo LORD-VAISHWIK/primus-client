@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { getApiBase, authHeaders, postWithQueue, showToast } from "./utils/api";
+import { getApiBase, authHeaders, postWithQueue, showToast, csrfHeaders } from "./utils/api";
+import { invoke } from '@tauri-apps/api/tauri';
+import { escapeHtml } from "./utils/escapeHtml";
 
 // --- Helper Components for Icons ---
 // Using inline SVGs to avoid external dependencies and ensure they always load.
@@ -107,7 +109,7 @@ function BuyTime() {
   const buy = async (id) => {
     try {
       setBusy(true);
-      await axios.post(`${getApiBase()}/api/offer/buy/${id}`, null, { headers: authHeaders() });
+      await axios.post(`${getApiBase()}/api/offer/buy/${id}`, null, { headers: { ...authHeaders(), ...csrfHeaders() } });
       alert('Time added to your account.');
       setBusy(false);
     } catch (e) {
@@ -145,7 +147,7 @@ function Shop() {
   const buy = async (productId) => {
     try {
       setBusy(true);
-      await axios.post(`${getApiBase()}/api/payment/order`, { items: [{ product_id: productId, quantity: 1 }] }, { headers: { ...authHeaders(), 'Content-Type': 'application/json' } });
+      await axios.post(`${getApiBase()}/api/payment/order`, { items: [{ product_id: productId, quantity: 1 }] }, { headers: { ...authHeaders(), 'Content-Type': 'application/json', ...csrfHeaders() } });
       alert('Purchased');
       setBusy(false);
     } catch (e) {
@@ -445,7 +447,7 @@ function PrizeVault() {
               <div>{p.name}</div>
               <div className="text-gray-400">{p.coin_cost} coins</div>
             </div>
-            <button onClick={async()=>{ try { await axios.post(`${getApiBase()}/api/prize/redeem/${p.id}`, null, { headers: authHeaders() }); showToast('Prize redeemed. Please contact staff.'); } catch(e) { showToast(e?.response?.data?.detail || 'Redeem failed'); } }} className="bg-primary/80 hover:bg-primary text-white px-3 py-1 rounded text-sm">Redeem</button>
+            <button onClick={async()=>{ try { await axios.post(`${getApiBase()}/api/prize/redeem/${p.id}`, null, { headers: { ...authHeaders(), ...csrfHeaders() } }); showToast('Prize redeemed. Please contact staff.'); } catch(e) { showToast(e?.response?.data?.detail || 'Redeem failed'); } }} className="bg-primary/80 hover:bg-primary text-white px-3 py-1 rounded text-sm">Redeem</button>
           </div>
         ))}
       </div>
@@ -475,7 +477,7 @@ function Leaderboards() {
         </ul>
       )}
       {sel && (
-        <button onClick={async()=>{ try { await axios.post(`${getApiBase()}/api/leaderboard/record/${sel}?value=60`, null, { headers: authHeaders() }); showToast('Recorded 60 points'); const res = await axios.get(`${getApiBase()}/api/leaderboard/${sel}`, { headers: authHeaders() }); setEntries(res.data || []); } catch {} }} className="mt-2 bg-primary/80 hover:bg-primary text-white px-3 py-1 rounded text-sm">Add 60 points</button>
+        <button onClick={async()=>{ try { await axios.post(`${getApiBase()}/api/leaderboard/record/${sel}?value=60`, null, { headers: { ...authHeaders(), ...csrfHeaders() } }); showToast('Recorded 60 points'); const res = await axios.get(`${getApiBase()}/api/leaderboard/${sel}`, { headers: authHeaders() }); setEntries(res.data || []); } catch {} }} className="mt-2 bg-primary/80 hover:bg-primary text-white px-3 py-1 rounded text-sm">Add 60 points</button>
       )}
     </div>
   );
@@ -495,7 +497,7 @@ function EventsPanel() {
               <div>{ev.name}</div>
               <div className="text-gray-400 text-xs">{ev.type}</div>
             </div>
-            <button onClick={async()=>{ try { await axios.post(`${getApiBase()}/api/event/progress/${ev.id}?delta=10`, null, { headers: authHeaders() }); showToast('Event progress +10'); } catch {} }} className="bg-primary/80 hover:bg-primary text-white px-3 py-1 rounded text-sm">+10</button>
+            <button onClick={async()=>{ try { await axios.post(`${getApiBase()}/api/event/progress/${ev.id}?delta=10`, null, { headers: { ...authHeaders(), ...csrfHeaders() } }); showToast('Event progress +10'); } catch {} }} className="bg-primary/80 hover:bg-primary text-white px-3 py-1 rounded text-sm">+10</button>
           </li>
         ))}
       </ul>
@@ -544,7 +546,7 @@ function Notifications() {
       <h3 className="text-white font-semibold mb-3">Notifications</h3>
       <ul className="space-y-2 text-sm text-gray-200 max-h-40 overflow-auto">
         {items.slice(0,5).map(n => (
-          <li key={n.id} className="glass-item">{n.content}</li>
+          <li key={n.id} className="glass-item"><span>{n.content}</span></li>
         ))}
       </ul>
     </div>
@@ -558,7 +560,7 @@ function SupportQuick() {
   const send = async () => {
     if (!text.trim()) return;
     try {
-      await postWithQueue(`${getApiBase()}/api/support/`, { pc_id: pcId ? parseInt(pcId) : null, issue: text.trim() }, { headers: authHeaders() });
+      await postWithQueue(`${getApiBase()}/api/support/`, { pc_id: pcId ? parseInt(pcId) : null, issue: text.trim() }, { headers: { ...authHeaders(), ...csrfHeaders() } });
       setText("");
       showToast('Support ticket sent.');
     } catch {}
@@ -591,7 +593,7 @@ function ChatWithStaff() {
     if (!text.trim()) return;
     setLoading(true);
     try {
-      await postWithQueue(`${getApiBase()}/api/chat/`, { message: text.trim() }, { headers: authHeaders() });
+      await postWithQueue(`${getApiBase()}/api/chat/`, { message: text.trim() }, { headers: { ...authHeaders(), ...csrfHeaders() } });
       setText("");
       await load();
     } catch {} finally { setLoading(false); }
@@ -602,7 +604,7 @@ function ChatWithStaff() {
       <div ref={listRef} className="bg-gray-900/50 border border-gray-700 rounded p-2 h-40 overflow-auto mb-2 text-sm text-gray-200">
         {messages.length ? messages.slice(-50).map(m => (
           <div key={m.id} className="mb-1">
-            <span className="text-gray-400">[{new Date(m.timestamp).toLocaleTimeString()}]</span> {m.message}
+            <span className="text-gray-400">[{new Date(m.timestamp).toLocaleTimeString()}]</span> <span>{escapeHtml(m.message)}</span>
           </div>
         )) : <div className="text-gray-500">No messages yet.</div>}
       </div>
@@ -667,7 +669,7 @@ function ProfileDrawer() {
                   <div className="text-gray-400">${p.price}{p.hours_included ? ` · ${p.hours_included}h` : ''}{p.valid_days ? ` · ${p.valid_days}d` : ''}</div>
                 </div>
                 <button onClick={async()=>{
-                  try { await axios.post(`${getApiBase()}/api/membership/buy/${p.id}`, null, { headers: authHeaders() }); showToast('Membership purchased.'); } catch(e) { showToast(e?.response?.data?.detail || 'Purchase failed'); }
+                  try { await axios.post(`${getApiBase()}/api/membership/buy/${p.id}`, null, { headers: { ...authHeaders(), ...csrfHeaders() } }); showToast('Membership purchased.'); } catch(e) { showToast(e?.response?.data?.detail || 'Purchase failed'); }
                 }} className="bg-primary/80 hover:bg-primary text-white px-2 py-1 rounded text-xs">Buy</button>
               </div>
             )) : <div className="text-gray-500 text-sm">No membership packages</div>}
@@ -681,7 +683,7 @@ function ProfileDrawer() {
               const amt = parseFloat(topup)
               if (!amt || amt <= 0) return;
               try {
-                await axios.post(`${getApiBase()}/api/wallet/topup`, { amount: amt, type: 'topup', description: 'self-topup' }, { headers: authHeaders() })
+                await axios.post(`${getApiBase()}/api/wallet/topup`, { amount: amt, type: 'topup', description: 'self-topup' }, { headers: { ...authHeaders(), ...csrfHeaders() } })
                 setTopup('')
                 const rootId = 'primus-toast-root';
                 let root = document.getElementById(rootId);
@@ -695,14 +697,14 @@ function ProfileDrawer() {
           <h5 className="text-sm text-gray-400 mb-1">Birthdate (YYYY-MM-DD)</h5>
           <div className="flex gap-2">
             <input value={dob} onChange={e=>setDob(e.target.value)} placeholder="2005-09-30" className="flex-1 glass-input text-sm" />
-            <button onClick={async()=>{ try { await axios.post(`${getApiBase()}/api/auth/me`, { birthdate: new Date(dob).toISOString() }, { headers: { ...authHeaders(), 'Content-Type': 'application/json' } }); showToast('Birthdate updated'); } catch { showToast('Invalid date'); } }} className="bg-primary/80 hover:bg-primary text-white px-3 py-1 rounded text-sm">Save</button>
+            <button onClick={async()=>{ try { await axios.post(`${getApiBase()}/api/auth/me`, { birthdate: new Date(dob).toISOString() }, { headers: { ...authHeaders(), 'Content-Type': 'application/json', ...csrfHeaders() } }); showToast('Birthdate updated'); } catch { showToast('Invalid date'); } }} className="bg-primary/80 hover:bg-primary text-white px-3 py-1 rounded text-sm">Save</button>
           </div>
         </div>
         <div className="mb-3">
           <h5 className="text-sm text-gray-400 mb-1">Redeem Coupon</h5>
           <div className="flex gap-2">
             <input value={coupon} onChange={e=>setCoupon(e.target.value)} placeholder="Code" className="flex-1 glass-input text-sm" />
-            <button onClick={async()=>{ try { await axios.post(`${getApiBase()}/api/coupon/redeem`, { code: coupon, target: 'offer' }, { headers: authHeaders() }); setCoupon(''); showToast('Coupon redeemed. It will apply to purchases.'); } catch(e) { showToast(e?.response?.data?.detail || 'Invalid/expired coupon'); } }} className="bg-primary/80 hover:bg-primary text-white px-3 py-1 rounded text-sm">Apply</button>
+            <button onClick={async()=>{ try { await axios.post(`${getApiBase()}/api/coupon/redeem`, { code: coupon, target: 'offer' }, { headers: { ...authHeaders(), ...csrfHeaders() } }); setCoupon(''); showToast('Coupon redeemed. It will apply to purchases.'); } catch(e) { showToast(e?.response?.data?.detail || 'Invalid/expired coupon'); } }} className="bg-primary/80 hover:bg-primary text-white px-3 py-1 rounded text-sm">Apply</button>
           </div>
         </div>
         <h5 className="text-sm text-gray-400 mb-1">Recent Wallet Activity</h5>
@@ -721,6 +723,7 @@ export default function Dashboard({ onLogout, onNavigate, currentUser, pcId, act
   const [selectedGame, setSelectedGame] = useState(GAMES[0]);
   const [wallet, setWallet] = useState(null);
   const [games, setGames] = useState(GAMES);
+  const [detectedGames, setDetectedGames] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [minutesLeft, setMinutesLeft] = useState(null);
   const [showQuickSwitch, setShowQuickSwitch] = useState(false);

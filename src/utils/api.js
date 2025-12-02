@@ -16,11 +16,8 @@ function computeDefaultBase() {
 export function getApiBase() {
   const stored = localStorage.getItem("primus_api_base");
   if (stored) return stored;
-  // Prefer domain-derived default so it works on any device without manual setup
-  const derived = computeDefaultBase();
-  if (derived) return derived;
-  if (ENV_BASE) return ENV_BASE;
-  return 'http://localhost:8000';
+  // Back to your working local backend
+  return 'http://192.168.29.253:8000';
 }
 
 export function setApiBase(url) {
@@ -32,6 +29,20 @@ export function setApiBase(url) {
 export function authHeaders() {
   const token = localStorage.getItem("primus_jwt");
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// CSRF helper: read csrf_token cookie and return header
+export function csrfHeaders() {
+  try {
+    if (typeof document === "undefined") return {};
+    const match = document.cookie.match(/(?:^|;\\s*)csrf_token=([^;]+)/);
+    if (match && match[1]) {
+      return { "X-CSRF-Token": decodeURIComponent(match[1]) };
+    }
+  } catch {
+    // ignore failures
+  }
+  return {};
 }
 
 // Centralized toast
@@ -55,7 +66,7 @@ export async function postWithQueue(url, data, config = {}) {
   const attempt = async () => {
     return await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(config.headers || {}) },
+      headers: { 'Content-Type': 'application/json', ...csrfHeaders(), ...(config.headers || {}) },
       body: JSON.stringify(data)
     });
   };

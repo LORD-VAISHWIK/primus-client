@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { getUserFromToken, isTokenValid } from "./utils/jwt";
 import axios from "axios";
 // Removed Firebase login; using backend OAuth and GIS in other UIs
-import { getApiBase, setApiBase } from "./utils/api";
+import { getApiBase, setApiBase, csrfHeaders } from "./utils/api";
 
 // Build login URL at submit time; avoid global mutation
 
@@ -42,12 +42,17 @@ export default function Login({ goToRegister, onLogin }) {
       params.append("username", email);
       params.append("password", password);
 
-      const res = await axios.post(API_URL, params, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        timeout: 15000,
-      });
+      const res = await axios.post(
+        API_URL,
+        params,
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            ...csrfHeaders(),
+          },
+          timeout: 15000,
+        }
+      );
 
       // Store the token and call the onLogin callback with the token
       const token = res.data.access_token;

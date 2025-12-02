@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { getApiBase, setApiBase, presetApiBases, showToast } from "./utils/api";
+import { getApiBase, setApiBase, presetApiBases, showToast, csrfHeaders } from "./utils/api";
  
 
 // Google Web Client ID provided by user for Google Sign-In
@@ -38,7 +38,7 @@ function GoogleOneTap({ onLoginSuccess }) {
                             const res = await axios.post(`${base}/api/social/google/idtoken`, {
                                 id_token: response.credential,
                                 client_id: GOOGLE_WEB_CLIENT_ID
-                            }, { headers: { 'Content-Type': 'application/json' } });
+                            }, { headers: { 'Content-Type': 'application/json', ...csrfHeaders() } });
                             const token = res?.data?.access_token;
                             if (token) {
                                 localStorage.setItem('primus_jwt', token);
@@ -79,7 +79,7 @@ function GoogleButton({ onLoginSuccess }) {
                             const res = await axios.post(`${base}/api/social/google/idtoken`, {
                                 id_token: response.credential,
                                 client_id: GOOGLE_WEB_CLIENT_ID
-                            }, { headers: { 'Content-Type': 'application/json' } });
+                            }, { headers: { 'Content-Type': 'application/json', ...csrfHeaders() } });
                             const token = res?.data?.access_token;
                             if (token) {
                                 localStorage.setItem('primus_jwt', token);
@@ -181,7 +181,7 @@ const ManualRegisterView = ({ setView, setScreen }) => {
         try {
             setOtpBusy(true);
             const url = getApiBase().replace(/\/$/, "") + "/api/send-otp/";
-            await axios.post(url, { email }, { headers: { 'Content-Type': 'application/json' }, timeout: 15000 });
+            await axios.post(url, { email }, { headers: { 'Content-Type': 'application/json', ...csrfHeaders() }, timeout: 15000 });
             setOtpSent(true);
             showToast("OTP sent to your email");
         } catch (err) {
@@ -202,7 +202,7 @@ const ManualRegisterView = ({ setView, setScreen }) => {
         try {
             setOtpBusy(true);
             const url = getApiBase().replace(/\/$/, "") + "/api/verify-otp/";
-            await axios.post(url, { email, otp: otpCode }, { headers: { 'Content-Type': 'application/json' }, timeout: 15000 });
+            await axios.post(url, { email, otp: otpCode }, { headers: { 'Content-Type': 'application/json', ...csrfHeaders() }, timeout: 15000 });
             setOtpVerified(true);
             showToast("Email verified successfully");
         } catch (err) {
@@ -251,7 +251,7 @@ const ManualRegisterView = ({ setView, setScreen }) => {
             params.append('email', email);
             params.append('password', password);
             params.append('role', 'client');
-            await axios.post(url, params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 15000 });
+            await axios.post(url, params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...csrfHeaders() }, timeout: 15000 });
             showToast("Registration complete. Please log in.");
             setScreen('login');
         } catch (err) {
@@ -449,7 +449,7 @@ const LoginView = ({ setScreen, onLogin }) => {
             const params = new URLSearchParams();
             params.append("username", emailOrUsername);
             params.append("password", password);
-            const res = await axios.post(url, params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 15000 });
+            const res = await axios.post(url, params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...csrfHeaders() }, timeout: 15000 });
             const token = res?.data?.access_token;
             if (!token) throw new Error('Invalid response from server');
             localStorage.setItem("primus_jwt", token);

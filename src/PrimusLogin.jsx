@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { getApiBase, setApiBase } from "./utils/api";
+import { getApiBase, setApiBase, csrfHeaders } from "./utils/api";
  
 
 export default function PrimusLogin({ onLogin, allowedRoles }) {
@@ -27,7 +27,11 @@ export default function PrimusLogin({ onLogin, allowedRoles }) {
       const params = new URLSearchParams();
       params.append("username", username);
       params.append("password", password);
-      const res = await axios.post(url, params, { headers: { "Content-Type": "application/x-www-form-urlencoded" }, timeout: 15000 });
+      const res = await axios.post(
+        url,
+        params,
+        { headers: { "Content-Type": "application/x-www-form-urlencoded", ...csrfHeaders() }, timeout: 15000 }
+      );
       const token = res?.data?.access_token;
       if (!token) throw new Error("Invalid response from server");
       localStorage.setItem("primus_jwt", token);

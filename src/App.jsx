@@ -3,8 +3,11 @@ import AuthCombined from "./login-and-register";
 import Dashboard, { AppHeader } from "./Dashboard";
 import Games from "./games";
 import { getUserFromToken, isTokenValid } from "./utils/jwt";
-import { getApiBase, authHeaders, flushQueue, showToast } from "./utils/api";
+import { getApiBase, authHeaders, flushQueue, showToast, csrfHeaders } from "./utils/api";
 import axios from "axios";
+
+// Import Tauri API for kiosk functionality
+import { invoke } from '@tauri-apps/api/tauri';
 
 const API_BASE = getApiBase();
 
@@ -16,7 +19,11 @@ function ShopPage() {
   const buy = async (id) => {
     try {
       setBusy(true);
-      await axios.post(`${getApiBase()}/api/payment/order`, { items: [{ product_id: id, quantity: 1 }] }, { headers: { ...authHeaders(), 'Content-Type': 'application/json' } });
+      await axios.post(
+        `${getApiBase()}/api/payment/order`,
+        { items: [{ product_id: id, quantity: 1 }] },
+        { headers: { ...authHeaders(), 'Content-Type': 'application/json', ...csrfHeaders() } }
+      );
       showToast('Purchased');
     } catch (e) {
       showToast(e?.response?.data?.detail || 'Purchase failed');
@@ -56,7 +63,11 @@ function PrizePage() {
   useEffect(() => { (async()=>{ try { setLoading(true); const r = await axios.get(`${getApiBase()}/api/prize/`, { headers: authHeaders() }); setPrizes(r.data||[]);} catch{} finally { setLoading(false); } })(); }, []);
   const redeem = async (id) => {
     try {
-      await axios.post(`${getApiBase()}/api/prize/redeem/${id}`, null, { headers: authHeaders() });
+      await axios.post(
+        `${getApiBase()}/api/prize/redeem/${id}`,
+        null,
+        { headers: { ...authHeaders(), ...csrfHeaders() } }
+      );
       showToast('Prize redeemed. Please contact staff.');
     } catch(e) {
       showToast(e?.response?.data?.detail || 'Redeem failed');
@@ -171,13 +182,14 @@ export default function App() {
   const [locked, setLocked] = useState(false);
   const [nextBooking, setNextBooking] = useState(null);
   const [networkOnline, setNetworkOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [kioskEnabled, setKioskEnabled] = useState(false);
 
   // Check token validity and get user info on mount and when jwt changes
   useEffect(() => {
     if (jwt && jwt !== "dummy_token_for_demo") {
       const fetchMe = async () => {
         try {
-          const res = await axios.get(`${API_BASE}/api/auth/me`, { headers: authHeaders() });
+            const res = await axios.get(`${API_BASE}/api/auth/me`, { headers: authHeaders() });
           setCurrentUser(res.data);
         } catch {
           // Fallback to local token parsing even if exp parsing fails
@@ -197,6 +209,61 @@ export default function App() {
     const onOffline = () => setNetworkOnline(false);
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
+    
+    // Test backend connection and initialize kiosk
+    const initializeKiosk = async () => {
+      try {
+        // Test backend connection first
+        console.log('Testing backend connection...');
+        const apiBase = getApiBase();
+        console.log('API Base URL:', apiBase);
+        
+        try {
+          const testResponse = await axios.get(`${apiBase}/health`);
+          console.log('Backend connection successful:', testResponse.status);
+        } catch (connectionError) {
+          console.error('❌ BACKEND NOT RUNNING!');
+          console.error('Please start your backend: python main.py');
+          console.error('Connection error:', connectionError.message);
+          alert('❌ Backend not running!\n\nPlease start your backend:\ncd K:\\lance\\backend\npython main.py');
+        }
+        
+        // Register PC with backend
+        try {
+          await invoke('register_pc_with_backend');
+          console.log('PC registered with backend');
+        } catch (regError) {
+          console.warn('PC registration failed:', regError);
+        }
+        
+        // Enable kiosk mode (run as administrator required)
+        try {
+          await invoke('setup_complete_kiosk');
+          await invoke('enable_kiosk_shortcuts');
+          console.log('Kiosk mode enabled');
+          
+          // Start periodic cleanup of closed apps and window management
+          setInterval(async () => {
+            try {
+              await invoke('cleanup_closed_apps');
+              await invoke('manage_window_focus');
+            } catch (error) {
+              console.warn('App management failed:', error);
+            }
+          }, 10000); // Every 10 seconds for better responsiveness
+          
+        } catch (kioskError) {
+          console.warn('Kiosk mode setup failed:', kioskError);
+          console.log('Run as Administrator to enable kiosk mode');
+        }
+      } catch (error) {
+        console.warn('Initialization failed:', error);
+      }
+    };
+    
+    // Delay initialization to avoid blocking UI
+    setTimeout(initializeKiosk, 1000);
+    
     return () => {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
@@ -305,7 +372,11 @@ export default function App() {
         // Optionally register a transient client session later if needed
         const sendHeartbeat = async () => {
           if (pcId) {
-            const res = await axios.post(`${getApiBase()}/api/clientpc/heartbeat/${pcId}`, null, { headers: authHeaders() });
+            const res = await axios.post(
+              `${getApiBase()}/api/clientpc/heartbeat/${pcId}`,
+              null,
+              { headers: { ...authHeaders(), ...csrfHeaders() } }
+            );
             const isLocked = res?.data?.status === 'locked';
             setLocked(isLocked);
             document.body.style.filter = isLocked ? 'blur(2px)' : '';
@@ -315,7 +386,11 @@ export default function App() {
         const pollCommands = async () => {
           try {
             if (!pcId) return;
-            const res = await axios.post(`${getApiBase()}/api/command/fetch`, new URLSearchParams({ pc_id: String(pcId) }), { headers: { ...authHeaders(), 'Content-Type': 'application/x-www-form-urlencoded' } });
+            const res = await axios.post(
+              `${getApiBase()}/api/command/fetch`,
+              new URLSearchParams({ pc_id: String(pcId) }),
+              { headers: { ...authHeaders(), 'Content-Type': 'application/x-www-form-urlencoded', ...csrfHeaders() } }
+            );
             if (res.data && res.data.command) {
               const cmd = res.data.command;
               if (cmd === 'message' && res.data.params) {
@@ -326,7 +401,11 @@ export default function App() {
                 try {
                   const id = localStorage.getItem('primus_last_assignment');
                   if (id) {
-                    await axios.post(`${getApiBase()}/api/license/release/${id}`, null, { headers: authHeaders() });
+                    await axios.post(
+                      `${getApiBase()}/api/license/release/${id}`,
+                      null,
+                      { headers: { ...authHeaders(), ...csrfHeaders() } }
+                    );
                     localStorage.removeItem('primus_last_assignment');
                   }
                 } catch {}
@@ -365,7 +444,11 @@ export default function App() {
       try {
         const sid = localStorage.getItem('primus_active_session_id');
         if (sid) {
-          await axios.post(`${getApiBase()}/api/session/stop/${sid}`, null, { headers: authHeaders() });
+          await axios.post(
+            `${getApiBase()}/api/session/stop/${sid}`,
+            null,
+            { headers: { ...authHeaders(), ...csrfHeaders() } }
+          );
           localStorage.removeItem('primus_active_session_id');
           // toast notify
           showToast('Recovered from previous session. Cleaned up server session.');
@@ -409,7 +492,11 @@ export default function App() {
       const params = new URLSearchParams();
       params.append('username', email);
       params.append('password', password);
-      const loginRes = await axios.post(`${API_BASE}/api/auth/login`, params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      const loginRes = await axios.post(
+        `${API_BASE}/api/auth/login`,
+        params,
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...csrfHeaders() } }
+      );
       const adminToken = loginRes?.data?.access_token;
       if (!adminToken) throw new Error('No token');
       const me = await axios.get(`${API_BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${adminToken}` } });
@@ -464,12 +551,10 @@ export default function App() {
   switch (activePage) {
     case 'home':
       return <div className="app-container">
-        {!networkOnline && <div className="primus-offline-banner">You are offline. Actions will be queued and sent when back online.</div>}
         <Dashboard onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} currentUser={currentUser} pcId={pcId} networkOnline={networkOnline} />
       </div>;
     case 'games':
       return <div className="app-container">
-        {!networkOnline && <div className="primus-offline-banner">You are offline. Actions will be queued and sent when back online.</div>}
         <AppHeader onLogout={handleLogout} currentUser={currentUser} minutesLeft={null} active={false} networkOnline={networkOnline} onNavigate={handleNavigate} activePage={activePage} />
         <div className="app-content">
           <Games onLogout={handleLogout} onNavigate={handleNavigate} currentUser={currentUser} />
@@ -477,7 +562,6 @@ export default function App() {
       </div>;
     case 'arcade':
       return <div className="app-container">
-        {!networkOnline && <div className="primus-offline-banner">You are offline. Actions will be queued and sent when back online.</div>}
         <AppHeader onLogout={handleLogout} currentUser={currentUser} minutesLeft={null} active={false} networkOnline={networkOnline} onNavigate={handleNavigate} activePage={activePage} />
         <div className="app-content">
           <ArcadePage />
@@ -485,7 +569,6 @@ export default function App() {
       </div>;
     case 'apps':
       return <div className="app-container">
-        {!networkOnline && <div className="primus-offline-banner">You are offline. Actions will be queued and sent when back online.</div>}
         <AppHeader onLogout={handleLogout} currentUser={currentUser} minutesLeft={null} active={false} networkOnline={networkOnline} onNavigate={handleNavigate} activePage={activePage} />
         <div className="app-content">
           <AppsPage />
@@ -493,7 +576,6 @@ export default function App() {
       </div>;
     case 'shop':
       return <div className="app-container">
-        {!networkOnline && <div className="primus-offline-banner">You are offline. Actions will be queued and sent when back online.</div>}
         <AppHeader onLogout={handleLogout} currentUser={currentUser} minutesLeft={null} active={false} networkOnline={networkOnline} onNavigate={handleNavigate} activePage={activePage} />
         <div className="app-content">
           <ShopPage />
@@ -502,7 +584,6 @@ export default function App() {
     case 'prize':
     case 'prize-vault':
       return <div className="app-container">
-        {!networkOnline && <div className="primus-offline-banner">You are offline. Actions will be queued and sent when back online.</div>}
         <AppHeader onLogout={handleLogout} currentUser={currentUser} minutesLeft={null} active={false} networkOnline={networkOnline} onNavigate={handleNavigate} activePage={activePage} />
         <div className="app-content">
           <PrizePage />
@@ -510,7 +591,6 @@ export default function App() {
       </div>;
     default:
       return <div className="app-container">
-        {!networkOnline && <div className="primus-offline-banner">You are offline. Actions will be queued and sent when back online.</div>}
         <Dashboard onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} currentUser={currentUser} pcId={pcId} networkOnline={networkOnline} />
       </div>;
   }
