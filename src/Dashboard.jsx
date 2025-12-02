@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { getApiBase, authHeaders, postWithQueue, showToast, csrfHeaders } from "./utils/api";
-import { invoke } from '@tauri-apps/api/tauri';
 import { escapeHtml } from "./utils/escapeHtml";
 
 // --- Helper Components for Icons ---

@@ -6,9 +6,6 @@ import { getUserFromToken, isTokenValid } from "./utils/jwt";
 import { getApiBase, authHeaders, flushQueue, showToast, csrfHeaders } from "./utils/api";
 import axios from "axios";
 
-// Import Tauri API for kiosk functionality
-import { invoke } from '@tauri-apps/api/tauri';
-
 const API_BASE = getApiBase();
 
 function ShopPage() {
@@ -209,61 +206,7 @@ export default function App() {
     const onOffline = () => setNetworkOnline(false);
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
-    
-    // Test backend connection and initialize kiosk
-    const initializeKiosk = async () => {
-      try {
-        // Test backend connection first
-        console.log('Testing backend connection...');
-        const apiBase = getApiBase();
-        console.log('API Base URL:', apiBase);
-        
-        try {
-          const testResponse = await axios.get(`${apiBase}/health`);
-          console.log('Backend connection successful:', testResponse.status);
-        } catch (connectionError) {
-          console.error('❌ BACKEND NOT RUNNING!');
-          console.error('Please start your backend: python main.py');
-          console.error('Connection error:', connectionError.message);
-          alert('❌ Backend not running!\n\nPlease start your backend:\ncd K:\\lance\\backend\npython main.py');
-        }
-        
-        // Register PC with backend
-        try {
-          await invoke('register_pc_with_backend');
-          console.log('PC registered with backend');
-        } catch (regError) {
-          console.warn('PC registration failed:', regError);
-        }
-        
-        // Enable kiosk mode (run as administrator required)
-        try {
-          await invoke('setup_complete_kiosk');
-          await invoke('enable_kiosk_shortcuts');
-          console.log('Kiosk mode enabled');
-          
-          // Start periodic cleanup of closed apps and window management
-          setInterval(async () => {
-            try {
-              await invoke('cleanup_closed_apps');
-              await invoke('manage_window_focus');
-            } catch (error) {
-              console.warn('App management failed:', error);
-            }
-          }, 10000); // Every 10 seconds for better responsiveness
-          
-        } catch (kioskError) {
-          console.warn('Kiosk mode setup failed:', kioskError);
-          console.log('Run as Administrator to enable kiosk mode');
-        }
-      } catch (error) {
-        console.warn('Initialization failed:', error);
-      }
-    };
-    
-    // Delay initialization to avoid blocking UI
-    setTimeout(initializeKiosk, 1000);
-    
+
     return () => {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
