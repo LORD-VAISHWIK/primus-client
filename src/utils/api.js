@@ -16,8 +16,10 @@ function computeDefaultBase() {
 export function getApiBase() {
   const stored = localStorage.getItem("primus_api_base");
   if (stored) return stored;
-  // Back to your working local backend
-  return 'http://192.168.29.253:8000';
+  // Prefer explicit env config if provided (e.g. on Vercel)
+  if (ENV_BASE) return ENV_BASE.replace(/\/$/, "");
+  // Otherwise, derive a sensible default based on hostname
+  return computeDefaultBase();
 }
 
 export function setApiBase(url) {
