@@ -207,6 +207,16 @@ export default function App() {
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
 
+    // CSRF handshake: fetch health endpoint once so backend can set CSRF cookie
+    (async () => {
+      try {
+        const apiBase = getApiBase().replace(/\/$/, "");
+        await axios.get(`${apiBase}/health`, { withCredentials: true });
+      } catch {
+        // ignore; health check is best-effort
+      }
+    })();
+
     return () => {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);

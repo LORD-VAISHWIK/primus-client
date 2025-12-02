@@ -181,7 +181,11 @@ const ManualRegisterView = ({ setView, setScreen }) => {
         try {
             setOtpBusy(true);
             const url = getApiBase().replace(/\/$/, "") + "/api/send-otp/";
-            await axios.post(url, { email }, { headers: { 'Content-Type': 'application/json', ...csrfHeaders() }, timeout: 15000 });
+            await axios.post(
+              url,
+              { email },
+              { headers: { 'Content-Type': 'application/json', ...csrfHeaders() }, timeout: 15000, withCredentials: true }
+            );
             setOtpSent(true);
             showToast("OTP sent to your email");
         } catch (err) {
@@ -202,7 +206,11 @@ const ManualRegisterView = ({ setView, setScreen }) => {
         try {
             setOtpBusy(true);
             const url = getApiBase().replace(/\/$/, "") + "/api/verify-otp/";
-            await axios.post(url, { email, otp: otpCode }, { headers: { 'Content-Type': 'application/json', ...csrfHeaders() }, timeout: 15000 });
+            await axios.post(
+              url,
+              { email, otp: otpCode },
+              { headers: { 'Content-Type': 'application/json', ...csrfHeaders() }, timeout: 15000, withCredentials: true }
+            );
             setOtpVerified(true);
             showToast("Email verified successfully");
         } catch (err) {
@@ -251,7 +259,11 @@ const ManualRegisterView = ({ setView, setScreen }) => {
             params.append('email', email);
             params.append('password', password);
             params.append('role', 'client');
-            await axios.post(url, params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...csrfHeaders() }, timeout: 15000 });
+            await axios.post(
+              url,
+              params,
+              { headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...csrfHeaders() }, timeout: 15000, withCredentials: true }
+            );
             showToast("Registration complete. Please log in.");
             setScreen('login');
         } catch (err) {
@@ -449,7 +461,11 @@ const LoginView = ({ setScreen, onLogin }) => {
             const params = new URLSearchParams();
             params.append("username", emailOrUsername);
             params.append("password", password);
-            const res = await axios.post(url, params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...csrfHeaders() }, timeout: 15000 });
+            const res = await axios.post(
+              url,
+              params,
+              { headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...csrfHeaders() }, timeout: 15000, withCredentials: true }
+            );
             const token = res?.data?.access_token;
             if (!token) throw new Error('Invalid response from server');
             localStorage.setItem("primus_jwt", token);
