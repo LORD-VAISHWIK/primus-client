@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowRight, Gift, Users, Sparkles, ChevronRight } from 'lucide-react';
-import GameCard from '../components/GameCard';
+import GameCard from '../components/ui/GameCard';
 import Widget, { ProgressWidget, SocialWidget } from '../components/Widget';
 
 // Mock data for games with reliable image URLs

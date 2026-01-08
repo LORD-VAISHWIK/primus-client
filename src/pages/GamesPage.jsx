@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search, Monitor, Gamepad, Crosshair, Sword, Users, Zap, ChevronRight } from 'lucide-react';
-import GameCard from '../components/GameCard';
+import GameCard from '../components/ui/GameCard';
 
 // Mock games data
 const allGames = [
