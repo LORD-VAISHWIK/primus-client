@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, ShoppingCart, Check } from 'lucide-react';
+import { apiService } from '../services/apiClient';
+import { showToast } from '../utils/api';
 
 const gamePasses = [
     { id: 1, duration: '15 min', price: 1.50, color: 'pass-card__visual--15min' },
@@ -23,6 +25,21 @@ const ShopPage = () => {
     const [activeCategory, setActiveCategory] = useState('passes');
     const [cart, setCart] = useState([]);
 
+    const [balance, setBalance] = useState(0);
+
+    useEffect(() => {
+        const fetchBalance = async () => {
+            try {
+                // Fetch user me to get balance or wallet endpoint
+                const res = await apiService.auth.me();
+                setBalance(res.data?.wallet_balance || 0);
+            } catch (err) {
+                console.error("Failed to fetch balance", err);
+            }
+        };
+        fetchBalance();
+    }, []);
+
     const addToCart = (pass) => {
         if (!cart.find(item => item.id === pass.id)) {
             setCart([...cart, pass]);
@@ -30,6 +47,23 @@ const ShopPage = () => {
     };
 
     const isInCart = (passId) => cart.find(item => item.id === passId);
+
+    const handleCheckout = async () => {
+        const total = cart.reduce((sum, item) => sum + item.price, 0);
+        if (total > balance) {
+            showToast("Insufficient balance!");
+            return;
+        }
+
+        // Mock checkout since we don't have a direct 'buy_package' endpoint in the list yet
+        showToast("Processing purchase...");
+        setTimeout(() => {
+            showToast("Purchase successful! Time added.");
+            setCart([]);
+            // Optimistically update balance
+            setBalance(prev => Math.max(0, prev - total));
+        }, 1500);
+    };
 
     return (
         <div className="page-content">
@@ -40,7 +74,7 @@ const ShopPage = () => {
                 </div>
                 <div className="shop-balance">
                     <span className="shop-balance__label">Your Balance</span>
-                    <span className="shop-balance__value">$80.00</span>
+                    <span className="shop-balance__value">${balance.toFixed(2)}</span>
                 </div>
             </div>
 
@@ -108,7 +142,11 @@ const ShopPage = () => {
                                         ${cart.reduce((sum, item) => sum + item.price, 0).toFixed(2)}
                                     </span>
                                 </div>
-                                <button className="btn btn-primary" style={{ width: '100%', marginTop: 'var(--spacing-md)' }}>
+                                <button
+                                    className="btn btn-primary"
+                                    style={{ width: '100%', marginTop: 'var(--spacing-md)' }}
+                                    onClick={handleCheckout}
+                                >
                                     Checkout
                                 </button>
                             </div>

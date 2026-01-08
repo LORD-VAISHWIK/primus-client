@@ -1,19 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowRight, Gift, Users, Sparkles, ChevronRight } from 'lucide-react';
 import GameCard from '../components/GameCard';
 import Widget, { ProgressWidget, SocialWidget } from '../components/Widget';
-
-// Mock data for games with reliable image URLs
-const featuredGames = [
-    { id: 1, title: 'Counter-Strike 2', image: 'https://picsum.photos/seed/cs2/400/600', genre: 'FPS', badge: 'Popular' },
-    { id: 2, title: 'Fortnite', image: 'https://picsum.photos/seed/fortnite/400/600', genre: 'Battle Royale' },
-    { id: 3, title: 'Valorant', image: 'https://picsum.photos/seed/valorant/400/600', genre: 'Tactical FPS' },
-    { id: 4, title: 'League of Legends', image: 'https://picsum.photos/seed/lol/400/600', genre: 'MOBA' },
-    { id: 5, title: 'Minecraft', image: 'https://picsum.photos/seed/minecraft/400/600', genre: 'Sandbox' },
-    { id: 6, title: 'Apex Legends', image: 'https://picsum.photos/seed/apex/400/600', genre: 'Battle Royale' },
-    { id: 7, title: 'Roblox', image: 'https://picsum.photos/seed/roblox/400/600', genre: 'Platform' },
-    { id: 8, title: 'GTA V', image: 'https://picsum.photos/seed/gtav/400/600', genre: 'Action' },
-];
+import { apiService } from '../services/apiClient';
 
 const socialFeedItems = [
     { initials: 'JD', name: 'John', action: 'just started playing CS2', time: '2 min ago' },
@@ -24,7 +13,49 @@ const socialFeedItems = [
 ];
 
 const HomePage = () => {
-    const [hoveredGame, setHoveredGame] = useState(null);
+    const [popularGames, setPopularGames] = useState([]);
+    const [recentGames, setRecentGames] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                // Fetch popular games
+                const res = await apiService.games.popular();
+                // Ensure we have an array
+                const games = Array.isArray(res.data) ? res.data : (res.data?.games || []);
+
+                setPopularGames(games);
+                // For "Continue Playing", we might need a specific endpoint or just reuse some games for now
+                setRecentGames(games.slice(0, 4));
+            } catch (error) {
+                console.error("Failed to fetch games:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    // Helper to map backend game object to UI format if needed
+    // Assuming backend returns standard format, but adding fallback just in case
+    const mapGame = (g) => ({
+        id: g.id,
+        title: g.title || g.name,
+        image: g.image || g.cover_url || g.icon_url || 'https://picsum.photos/400/600',
+        genre: g.genre || 'Game',
+        badge: g.is_popular ? 'Popular' : undefined
+    });
+
+    if (loading) {
+        return (
+            <div className="page-content center-content">
+                <div className="loading-spinner" />
+            </div>
+        );
+    }
 
     return (
         <div className="page-content">
@@ -35,7 +66,7 @@ const HomePage = () => {
                     <div className="hero">
                         <div className="hero__background">
                             <img
-                                src="https://cdn.cloudflare.steamstatic.com/steam/apps/730/header.jpg"
+                                src={popularGames[0]?.image || popularGames[0]?.cover_url || "https://cdn.cloudflare.steamstatic.com/steam/apps/730/header.jpg"}
                                 alt="Featured Game"
                             />
                         </div>
@@ -46,10 +77,10 @@ const HomePage = () => {
                                 Featured Game
                             </span>
                             <h1 className="hero__title">
-                                <span className="text-gradient">Counter-Strike 2</span>
+                                <span className="text-gradient">{popularGames[0]?.title || popularGames[0]?.name || "Welcome to Primus"}</span>
                             </h1>
                             <p className="hero__description">
-                                The next era of competitive FPS is here. Experience the next generation of CS with updated graphics, refined gameplay, and more.
+                                {popularGames[0]?.description || "Experience the next generation of gaming at Primus. High performance, low latency, and premium experience."}
                             </p>
                             <div className="hero__actions">
                                 <button className="btn btn-primary btn-lg">
@@ -73,31 +104,37 @@ const HomePage = () => {
                             </a>
                         </div>
                         <div className="games-row">
-                            {featuredGames.map((game, index) => (
-                                <GameCard
-                                    key={game.id}
-                                    game={game}
-                                    ranking={index + 1}
-                                />
-                            ))}
+                            {popularGames.length > 0 ? (
+                                popularGames.slice(0, 5).map((game, index) => (
+                                    <GameCard
+                                        key={game.id}
+                                        game={mapGame(game)}
+                                        ranking={index + 1}
+                                    />
+                                ))
+                            ) : (
+                                <p className="text-muted">No games available at the moment.</p>
+                            )}
                         </div>
                     </section>
 
                     {/* Recently Played */}
-                    <section className="section">
-                        <div className="section__header">
-                            <h2 className="section__title">Continue Playing</h2>
-                            <a href="/games" className="section__link">
-                                View history
-                                <ChevronRight size={18} />
-                            </a>
-                        </div>
-                        <div className="games-row">
-                            {featuredGames.slice(0, 4).map((game) => (
-                                <GameCard key={game.id} game={game} />
-                            ))}
-                        </div>
-                    </section>
+                    {recentGames.length > 0 && (
+                        <section className="section">
+                            <div className="section__header">
+                                <h2 className="section__title">Continue Playing</h2>
+                                <a href="/games" className="section__link">
+                                    View history
+                                    <ChevronRight size={18} />
+                                </a>
+                            </div>
+                            <div className="games-row">
+                                {recentGames.map((game) => (
+                                    <GameCard key={game.id} game={mapGame(game)} />
+                                ))}
+                            </div>
+                        </section>
+                    )}
                 </div>
 
                 {/* Widgets Sidebar */}
@@ -126,8 +163,6 @@ const HomePage = () => {
                         label="Play more to earn free gaming time!"
                         actionLabel="Redeem Now"
                     />
-
-
 
                     {/* Social Feed */}
                     <SocialWidget

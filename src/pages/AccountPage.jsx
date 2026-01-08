@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Wallet, ShoppingBag, Shield, ArrowLeft, Clock, Coins, DollarSign, Mail, Calendar, Edit3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { apiService } from '../services/apiClient';
 
 const navItems = [
     { id: 'details', label: 'Personal Details', icon: User },
@@ -18,17 +19,54 @@ const AccountPage = () => {
     const [activeSection, setActiveSection] = useState('details');
     const [walletTab, setWalletTab] = useState('active');
 
-    const user = {
-        name: 'John',
-        lastName: 'Smith',
-        email: 'john.smith@example.com',
-        dob: '01/Nov/2000',
-        initials: 'JS',
-        memberSince: '12/05/2023',
-        cashBalance: 80.00,
-        timeRemaining: '49h 02m',
-        ggCoins: 12500,
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                setLoading(true);
+                const res = await apiService.auth.me();
+                setUser(res.data);
+            } catch (err) {
+                console.error("Failed to fetch user profile", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchUser();
+    }, []);
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString();
     };
+
+    if (loading) {
+        return (
+            <div className="page-content center-content">
+                <div className="loading-spinner" />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="page-content center-content">
+                <p>Failed to load profile. Please try refreshing.</p>
+            </div>
+        );
+    }
+
+    // Prepare display values from real user data
+    // Assuming backend fields: first_name, last_name, email, dob, created_at, wallet_balance, time_remaining, gg_coins
+    const displayName = user.first_name || user.username || 'User';
+    const initials = (user.first_name?.[0] || user.username?.[0] || 'U').toUpperCase();
+    const cashBalance = parseFloat(user.wallet_balance || 0);
+    // Time remaining might be in seconds or minutes from backend. Assuming minutes for now or a formatted string if backend handles it.
+    // If it's a number (minutes), format it.
+    const timeRemaining = user.time_remaining || '0m';
+    const ggCoins = user.gg_coins || 0;
 
     return (
         <div className="page-content">
@@ -64,10 +102,10 @@ const AccountPage = () => {
                 <div className="account-content">
                     {/* Account Header */}
                     <div className="account-header">
-                        <div className="account-header__avatar">{user.initials}</div>
+                        <div className="account-header__avatar">{initials}</div>
                         <div className="account-header__info">
-                            <h2>{user.name} {user.lastName}</h2>
-                            <p>Member since {user.memberSince}</p>
+                            <h2>{user.first_name} {user.last_name}</h2>
+                            <p>Member since {formatDate(user.created_at)}</p>
                         </div>
                     </div>
 
@@ -88,7 +126,7 @@ const AccountPage = () => {
                                 <DollarSign size={24} />
                             </div>
                             <div className="account-balance__value" style={{ color: 'var(--success)' }}>
-                                ${user.cashBalance.toFixed(2)}
+                                ${cashBalance.toFixed(2)}
                             </div>
                             <div className="account-balance__label">Cash Balance</div>
                         </div>
@@ -97,7 +135,7 @@ const AccountPage = () => {
                                 <Clock size={24} />
                             </div>
                             <div className="account-balance__value" style={{ color: 'var(--accent-primary)' }}>
-                                {user.timeRemaining}
+                                {timeRemaining}
                             </div>
                             <div className="account-balance__label">Time Remaining</div>
                         </div>
@@ -106,7 +144,7 @@ const AccountPage = () => {
                                 <Coins size={24} />
                             </div>
                             <div className="account-balance__value" style={{ color: 'var(--warning)' }}>
-                                {user.ggCoins.toLocaleString()}
+                                {ggCoins.toLocaleString()}
                             </div>
                             <div className="account-balance__label">ggCoins</div>
                         </div>
@@ -126,44 +164,48 @@ const AccountPage = () => {
                             <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">First Name</label>
-                                    <input type="text" className="form-input" value={user.name} readOnly />
+                                    <input type="text" className="form-input" value={user.first_name || ''} readOnly />
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Last Name</label>
-                                    <input type="text" className="form-input" value={user.lastName} readOnly />
+                                    <input type="text" className="form-input" value={user.last_name || ''} readOnly />
                                 </div>
                             </div>
 
                             <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">Date of Birth</label>
-                                    <input type="text" className="form-input" value={user.dob} readOnly />
+                                    <input type="text" className="form-input" value={user.dob ? formatDate(user.dob) : 'Not set'} readOnly />
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Email</label>
                                     <div style={{ position: 'relative' }}>
-                                        <input type="email" className="form-input" value={user.email} readOnly />
-                                        <span style={{
-                                            position: 'absolute',
-                                            right: 'var(--spacing-md)',
-                                            top: '50%',
-                                            transform: 'translateY(-50%)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 'var(--spacing-xs)',
-                                            fontSize: '0.75rem',
-                                            color: 'var(--error)'
-                                        }}>
-                                            ⚠️ Not verified
-                                        </span>
+                                        <input type="email" className="form-input" value={user.email || ''} readOnly />
+                                        {!user.email_verified && (
+                                            <span style={{
+                                                position: 'absolute',
+                                                right: 'var(--spacing-md)',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 'var(--spacing-xs)',
+                                                fontSize: '0.75rem',
+                                                color: 'var(--error)'
+                                            }}>
+                                                ⚠️ Not verified
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
 
-                            <button className="btn btn-secondary" style={{ marginTop: 'var(--spacing-md)' }}>
-                                <Mail size={16} />
-                                Email verification
-                            </button>
+                            {!user.email_verified && (
+                                <button className="btn btn-secondary" style={{ marginTop: 'var(--spacing-md)' }}>
+                                    <Mail size={16} />
+                                    Email verification
+                                </button>
+                            )}
                         </>
                     )}
 
