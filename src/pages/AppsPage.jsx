@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
-import GameCard from '../components/ui/GameCard';
+import GameCard from '../components/GameCard';
 
 const apps = [
     { id: 1, title: 'Discord', image: 'https://picsum.photos/seed/disc/400/600', genre: 'Communication' },

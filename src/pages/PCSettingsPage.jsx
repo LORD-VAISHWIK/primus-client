@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, Monitor, Mouse, Speaker, Volume2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { invoke } from '../utils/invoke';
 
 const languages = [
     { code: 'en', name: 'English' },
@@ -35,29 +34,19 @@ const languages = [
 ];
 
 const windowsSettings = [
-    { id: 'display', name: 'Display Settings', icon: Monitor, command: 'open_display_settings' },
-    { id: 'mouse', name: 'Mouse Settings', icon: Mouse, command: 'open_mouse_settings' },
-    { id: 'sound-devices', name: 'Sound Devices', icon: Speaker, command: 'open_sound_settings' },
-    { id: 'volume', name: 'Sound Volume', icon: Volume2, command: 'open_volume_mixer' },
+    { id: 'display', name: 'Display Settings', icon: Monitor },
+    { id: 'mouse', name: 'Mouse Settings', icon: Mouse },
+    { id: 'sound-devices', name: 'Sound Devices', icon: Speaker },
+    { id: 'volume', name: 'Sound Volume', icon: Volume2 },
 ];
 
 const PCSettingsPage = () => {
     const navigate = useNavigate();
     const [selectedLanguage, setSelectedLanguage] = useState('en');
 
-    const handleWindowsSetting = async (setting) => {
-        try {
-            console.log(`Opening Windows setting: ${setting.id}`);
-            await invoke(setting.command);
-        } catch (error) {
-            console.warn(`Failed to open ${setting.name}:`, error);
-            // Fallback: try opening via shell command
-            try {
-                await invoke('open_windows_settings', { settingId: setting.id });
-            } catch (e) {
-                console.warn('Fallback also failed:', e);
-            }
-        }
+    const handleWindowsSetting = (settingId) => {
+        // These would trigger Windows settings panels via Tauri commands
+        console.log(`Opening Windows setting: ${settingId}`);
     };
 
     return (
@@ -84,7 +73,7 @@ const PCSettingsPage = () => {
                             <button
                                 key={setting.id}
                                 className="windows-setting-card"
-                                onClick={() => handleWindowsSetting(setting)}
+                                onClick={() => handleWindowsSetting(setting.id)}
                             >
                                 <div className="windows-setting-icon">
                                     <IconComponent size={24} />
