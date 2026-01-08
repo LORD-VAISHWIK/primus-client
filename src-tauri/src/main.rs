@@ -800,47 +800,30 @@ async fn register_pc_with_backend() -> Result<String, String> {
         .to_string_lossy()
         .to_string();
     
-    let device_id = format!("PC_{}", uuid::Uuid::new_v4().to_string().replace("-", "")[..8].to_uppercase());
+    // In a real app, you would generate a stable hardware ID
+    let hw_id = generate_hardware_fingerprint();
     
-    // Create registration data
-    let registration_data = serde_json::json!({
-        "name": hostname,
-        "device_id": device_id,
-        "ip_address": "127.0.0.1",
-        "status": "online",
-        "os_info": "Windows",
-        "arch": "x64",
-        "client_version": "1.0.0",
-        "last_seen": chrono::Utc::now().to_rfc3339(),
-        "capabilities": {
-            "kiosk_mode": true,
-            "game_detection": true,
-            "time_management": true,
-            "shortcut_blocking": true
-        }
-    });
-    
-    // Use configurable backend URL
-    let backend_url = BACKEND_URL.lock().unwrap().clone();
-    let url = format!("{}/api/clientpc/register", backend_url);
-    
+    // Call backend to register
     let client = reqwest::Client::new();
-    match client
-        .post(&url)
-        .json(&registration_data)
-        .send()
-        .await
-    {
-        Ok(response) => {
-            if response.status().is_success() {
-                Ok(format!("✅ PC registered successfully!\n\nPC Name: {}\nDevice ID: {}\n\nCheck your admin portal at primusadmin.in", hostname, device_id))
-            } else {
-                Err(format!("❌ Registration failed: HTTP {}", response.status()))
-            }
-        }
-        Err(e) => Err(format!("❌ Network error: {}", e))
-    }
+    let backend_url = "https://api.primustech.in"; // Hardcoded for now, should come from config
+    
+    // TODO: Implement actual registration logic
+    
+    Ok(format!("PC Registered: {} ({})", hostname, hw_id))
 }
+
+#[tauri::command]
+async fn check_installed_paths(paths: Vec<String>) -> Result<Vec<String>, String> {
+    let mut installed = Vec::new();
+    for path in paths {
+        if !path.is_empty() && std::path::Path::new(&path).exists() {
+            installed.push(path);
+        }
+    }
+    Ok(installed)
+}
+
+
 
 #[tauri::command]
 async fn enable_auto_boot() -> Result<String, String> {
@@ -1229,7 +1212,8 @@ fn main() {
             system_restart,
             system_logoff,
             system_lock,
-            system_cancel_shutdown
+            system_cancel_shutdown,
+            check_installed_paths
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

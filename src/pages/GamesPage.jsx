@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, Monitor, Gamepad, Crosshair, Sword, Users, Zap, ChevronRight } from 'lucide-react';
+import { Search, Monitor, Gamepad, Crosshair, Sword, Users, Zap, ChevronRight, HardDrive } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/tauri';
 import GameCard from '../components/GameCard';
 import { apiService } from '../services/apiClient';
 
@@ -17,6 +18,8 @@ const GamesPage = () => {
     const [selectedTag, setSelectedTag] = useState('All');
     const [freeToPlay, setFreeToPlay] = useState(false);
     const [availableToBorrow, setAvailableToBorrow] = useState(false);
+    const [autoScanEnabled, setAutoScanEnabled] = useState(false);
+    const [installedPaths, setInstalledPaths] = useState([]);
 
     // Data states
     const [games, setGames] = useState([]);
@@ -39,6 +42,34 @@ const GamesPage = () => {
         }, 500);
         return () => clearTimeout(timer);
     }, [searchQuery]);
+
+    // Auto Scan Logic
+    useEffect(() => {
+        const runAutoScan = async () => {
+            if (!autoScanEnabled || games.length === 0) {
+                setInstalledPaths([]);
+                return;
+            }
+
+            try {
+                // Collect all exe_paths from loaded games
+                const pathsToCheck = games
+                    .map(g => g.exe_path)
+                    .filter(p => p && p.trim().length > 0);
+
+                if (pathsToCheck.length === 0) return;
+
+                // Call custom Tauri command
+                const verifiedPaths = await invoke('check_installed_paths', { paths: pathsToCheck });
+                setInstalledPaths(verifiedPaths);
+            } catch (err) {
+                console.error("Auto scan failed:", err);
+            }
+        };
+
+        runAutoScan();
+    }, [autoScanEnabled, games]);
+
 
     const fetchGames = async () => {
         try {
@@ -68,18 +99,20 @@ const GamesPage = () => {
         }
     };
 
-    // Client-side filtering for tags/licenses (since backend search might be simple title match)
+    // Client-side filtering
     const filteredGames = games.filter(game => {
-        // Tag filter (if game has 'tags' or 'genre' property)
+        // Tag filter
         const gameTags = game.tags || (game.genre ? [game.genre] : []);
         const matchesTag = selectedTag === 'All' || gameTags.includes(selectedTag) || game.genre === selectedTag;
 
-        // License filters (mock logic if backend doesn't support these flags yet)
-        // If backend sends these flags, utilize them. Otherwise, ignore.
+        // License filters
         const matchesF2P = !freeToPlay || game.is_free;
         const matchesBorrow = !availableToBorrow || game.can_borrow;
 
-        return matchesTag && matchesF2P && matchesBorrow;
+        // Auto Scan Filter (Only Installed)
+        const matchesInstalled = !autoScanEnabled || (game.exe_path && installedPaths.includes(game.exe_path));
+
+        return matchesTag && matchesF2P && matchesBorrow && matchesInstalled;
     });
 
     const mapGame = (g) => ({
@@ -96,6 +129,29 @@ const GamesPage = () => {
             <div className="games-page">
                 {/* Sidebar Filters */}
                 <aside className="games-sidebar">
+                    {/* Auto Scan Toggle */}
+                    <div className="filter-section" style={{
+                        background: 'rgba(50, 255, 100, 0.05)',
+                        border: '1px solid rgba(50, 255, 100, 0.2)'
+                    }}>
+                        <h3 className="filter-section__title" style={{ color: 'var(--success)' }}>
+                            <HardDrive size={16} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />
+                            Installed Only
+                        </h3>
+                        <div className="filter-toggle">
+                            <span className="filter-toggle__label">Auto Scan System</span>
+                            <button
+                                className={`toggle ${autoScanEnabled ? 'active' : ''}`}
+                                onClick={() => setAutoScanEnabled(!autoScanEnabled)}
+                            />
+                        </div>
+                        {autoScanEnabled && (
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                                Showing {filteredGames.length} installed games found.
+                            </p>
+                        )}
+                    </div>
+
                     {/* License Filters */}
                     <div className="filter-section">
                         <h3 className="filter-section__title">License</h3>
@@ -153,7 +209,7 @@ const GamesPage = () => {
                         />
                     </div>
 
-                    {/* Launchers */}
+                    {/* Launchers - Hide if scanning for installed games to reduce clutter, or keep it? Keeping it. */}
                     <section className="section">
                         <div className="section__header">
                             <h2 className="section__title">Access your own games</h2>
@@ -213,6 +269,7 @@ const GamesPage = () => {
                                 ) : (
                                     <div className="empty-state">
                                         <p>No games found matching your criteria.</p>
+                                        {autoScanEnabled && <p>Try disabling "Auto Scan" to see all available library games.</p>}
                                     </div>
                                 )}
                             </section>
