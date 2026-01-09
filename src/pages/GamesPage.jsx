@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Search, Monitor, Gamepad, Crosshair, Sword, Users, Zap, ChevronRight, HardDrive } from 'lucide-react';
+import { Search, Monitor, Gamepad, Crosshair, Sword, Users, Zap, ChevronRight, HardDrive, Plus, FolderOpen, Trash2 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/tauri';
+import { open } from '@tauri-apps/api/dialog';
 import GameCard from '../components/GameCard';
 import { apiService } from '../services/apiClient';
+import { showToast } from '../utils/api';
 
 const tags = ['All', 'Multiplayer', 'FPS', 'Shooter', 'Battle Royale', 'MOBA', 'Action', 'Strategy', 'Casual', 'RPG'];
 
@@ -12,6 +14,8 @@ const launchers = [
     { name: 'Battle.net', icon: '⚔️', color: 'linear-gradient(135deg, #00aeff 0%, #0074d9 100%)' },
     { name: 'Ubisoft', icon: '🎯', color: '#0070d1' },
 ];
+
+const LOCAL_GAMES_KEY = 'primus_local_games';
 
 const GamesPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -23,8 +27,32 @@ const GamesPage = () => {
 
     // Data states
     const [games, setGames] = useState([]);
+    const [localGames, setLocalGames] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Add game modal
+    const [showAddGame, setShowAddGame] = useState(false);
+    const [newGameName, setNewGameName] = useState('');
+    const [newGamePath, setNewGamePath] = useState('');
+
+    // Load local games from localStorage
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem(LOCAL_GAMES_KEY);
+            if (stored) {
+                setLocalGames(JSON.parse(stored));
+            }
+        } catch (e) {
+            console.error('Failed to load local games:', e);
+        }
+    }, []);
+
+    // Save local games to localStorage
+    const saveLocalGames = (games) => {
+        setLocalGames(games);
+        localStorage.setItem(LOCAL_GAMES_KEY, JSON.stringify(games));
+    };
 
     // Initial Fetch
     useEffect(() => {
@@ -46,14 +74,17 @@ const GamesPage = () => {
     // Auto Scan Logic
     useEffect(() => {
         const runAutoScan = async () => {
-            if (!autoScanEnabled || games.length === 0) {
+            if (!autoScanEnabled) {
                 setInstalledPaths([]);
                 return;
             }
 
+            const allGames = [...games, ...localGames];
+            if (allGames.length === 0) return;
+
             try {
                 // Collect all exe_paths from loaded games
-                const pathsToCheck = games
+                const pathsToCheck = allGames
                     .map(g => g.exe_path)
                     .filter(p => p && p.trim().length > 0);
 
@@ -68,7 +99,7 @@ const GamesPage = () => {
         };
 
         runAutoScan();
-    }, [autoScanEnabled, games]);
+    }, [autoScanEnabled, games, localGames]);
 
 
     const fetchGames = async () => {
@@ -80,7 +111,7 @@ const GamesPage = () => {
             setError(null);
         } catch (err) {
             console.error("Failed to fetch games:", err);
-            setError("Failed to load games. Please try again.");
+            setError("Failed to load games from server. You can still add local games.");
         } finally {
             setLoading(false);
         }
@@ -99,8 +130,73 @@ const GamesPage = () => {
         }
     };
 
+    // Add local game
+    const handleAddGame = () => {
+        if (!newGameName.trim() || !newGamePath.trim()) {
+            showToast('Please enter both name and path');
+            return;
+        }
+
+        const newGame = {
+            id: `local_${Date.now()}`,
+            name: newGameName,
+            title: newGameName,
+            exe_path: newGamePath,
+            is_local: true,
+            genre: 'Local Game',
+            tags: ['Local']
+        };
+
+        saveLocalGames([...localGames, newGame]);
+        setNewGameName('');
+        setNewGamePath('');
+        setShowAddGame(false);
+        showToast(`Added "${newGameName}" to local games`);
+    };
+
+    // Browse for executable
+    const handleBrowsePath = async () => {
+        try {
+            const selected = await open({
+                multiple: false,
+                filters: [{
+                    name: 'Executable',
+                    extensions: ['exe', 'bat', 'cmd', 'lnk']
+                }]
+            });
+            if (selected && typeof selected === 'string') {
+                setNewGamePath(selected);
+            }
+        } catch (e) {
+            console.error('Failed to open file dialog:', e);
+        }
+    };
+
+    // Remove local game
+    const handleRemoveLocalGame = (gameId) => {
+        const updated = localGames.filter(g => g.id !== gameId);
+        saveLocalGames(updated);
+        showToast('Game removed');
+    };
+
+    // Launch local game
+    const handleLaunchGame = async (game) => {
+        if (game.exe_path) {
+            try {
+                await invoke('launch_game', { path: game.exe_path });
+                showToast(`Launching ${game.title || game.name}...`);
+            } catch (e) {
+                console.error('Failed to launch game:', e);
+                showToast('Failed to launch game');
+            }
+        }
+    };
+
+    // Combine API games with local games
+    const allGames = [...games, ...localGames];
+
     // Client-side filtering
-    const filteredGames = games.filter(game => {
+    const filteredGames = allGames.filter(game => {
         // Tag filter
         const gameTags = game.tags || (game.genre ? [game.genre] : []);
         const matchesTag = selectedTag === 'All' || gameTags.includes(selectedTag) || game.genre === selectedTag;
@@ -129,6 +225,52 @@ const GamesPage = () => {
             <div className="games-page">
                 {/* Sidebar Filters */}
                 <aside className="games-sidebar">
+                    {/* Add Game Button */}
+                    <div className="filter-section" style={{
+                        background: 'rgba(58, 190, 255, 0.05)',
+                        border: '1px solid rgba(58, 190, 255, 0.2)'
+                    }}>
+                        <button
+                            className="btn btn-primary"
+                            style={{ width: '100%' }}
+                            onClick={() => setShowAddGame(true)}
+                        >
+                            <Plus size={18} />
+                            Add Local Game
+                        </button>
+                    </div>
+
+                    {/* Local Games List */}
+                    {localGames.length > 0 && (
+                        <div className="filter-section">
+                            <h3 className="filter-section__title">Local Games ({localGames.length})</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+                                {localGames.map(game => (
+                                    <div key={game.id} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: 'var(--spacing-sm)',
+                                        background: 'rgba(255,255,255,0.03)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        fontSize: '0.875rem'
+                                    }}>
+                                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {game.name}
+                                        </span>
+                                        <button
+                                            onClick={() => handleRemoveLocalGame(game.id)}
+                                            style={{ color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                                            title="Remove"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Auto Scan Toggle */}
                     <div className="filter-section" style={{
                         background: 'rgba(50, 255, 100, 0.05)',
@@ -261,9 +403,17 @@ const GamesPage = () => {
                                     <h2 className="section__title">All Games</h2>
                                 </div>
                                 {filteredGames.length > 0 ? (
-                                    <div className="games-grid">
+                                    <div className="games-grid" style={{
+                                        maxHeight: 'calc(100vh - 350px)',
+                                        overflowY: 'auto',
+                                        paddingRight: '10px'
+                                    }}>
                                         {filteredGames.map((game) => (
-                                            <GameCard key={game.id} game={mapGame(game)} />
+                                            <GameCard
+                                                key={game.id}
+                                                game={mapGame(game)}
+                                                hideImage={game.is_local}
+                                            />
                                         ))}
                                     </div>
                                 ) : (
@@ -277,6 +427,88 @@ const GamesPage = () => {
                     )}
                 </main>
             </div>
+
+            {/* Add Game Modal */}
+            {showAddGame && (
+                <div className="modal-overlay" style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div className="auth-card" style={{ maxWidth: 450 }}>
+                        <h2 className="auth-title">Add Local Game</h2>
+                        <p className="auth-subtitle">Add a game from your computer</p>
+
+                        <div className="auth-form">
+                            <div className="auth-input-group">
+                                <Gamepad size={18} className="auth-input-icon" />
+                                <input
+                                    type="text"
+                                    placeholder="Game Name"
+                                    value={newGameName}
+                                    onChange={(e) => setNewGameName(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="auth-input-group" style={{ position: 'relative' }}>
+                                <FolderOpen size={18} className="auth-input-icon" />
+                                <input
+                                    type="text"
+                                    placeholder="Executable Path (e.g., C:\Games\game.exe)"
+                                    value={newGamePath}
+                                    onChange={(e) => setNewGamePath(e.target.value)}
+                                    style={{ paddingRight: 80 }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleBrowsePath}
+                                    style={{
+                                        position: 'absolute',
+                                        right: 8,
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        padding: '6px 12px',
+                                        background: 'var(--accent-gradient)',
+                                        border: 'none',
+                                        borderRadius: 'var(--radius-sm)',
+                                        color: 'var(--bg-primary)',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Browse
+                                </button>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
+                                <button
+                                    className="btn btn-secondary"
+                                    style={{ flex: 1 }}
+                                    onClick={() => {
+                                        setShowAddGame(false);
+                                        setNewGameName('');
+                                        setNewGamePath('');
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="btn btn-primary"
+                                    style={{ flex: 1 }}
+                                    onClick={handleAddGame}
+                                >
+                                    Add Game
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

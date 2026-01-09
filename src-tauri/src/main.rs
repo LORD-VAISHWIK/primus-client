@@ -689,14 +689,23 @@ async fn launch_game(exe_path: String, window: tauri::Window) -> Result<String, 
         println!("🚀 PERMANENTLY disabled always-on-top for launched apps");
     }
     
+    // Minimize Primus window to allow game to take full focus and user to switch context
+    let _ = window.minimize();
+
     // Use CREATE_NEW_PROCESS_GROUP to ensure app appears in foreground
     let mut cmd = Command::new(&exe_path);
     
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
-        // CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE to ensure visibility
-        cmd.creation_flags(0x00000200 | 0x00000010);
+        // CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE | DETACHED_PROCESS
+        // 0x00000200 | 0x00000010 | 0x00000008
+        cmd.creation_flags(0x00000200 | 0x00000010 | 0x00000008);
+    }
+    
+    // Set working directory to the executable's parent folder
+    if let Some(parent) = std::path::Path::new(&exe_path).parent() {
+        cmd.current_dir(parent);
     }
     
     match cmd.spawn() {
@@ -718,6 +727,8 @@ async fn launch_game(exe_path: String, window: tauri::Window) -> Result<String, 
             Ok(format!("✅ Launched: {} (PID: {}) - FULL FUNCTIONALITY ENABLED", exe_path, child.id()))
         },
         Err(e) => {
+            // If launch fails, restore window
+            let _ = window.unminimize();
             Err(format!("❌ Failed to launch: {}", e))
         }
     }
@@ -1030,14 +1041,33 @@ async fn save_device_credentials(app_handle: tauri::AppHandle, pc_id: i32, licen
 
 #[tauri::command]
 async fn get_device_credentials(app_handle: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    println!("[Backend] get_device_credentials invoked");
     let config_dir = app_handle.path_resolver().app_config_dir().ok_or("Could not find config dir")?;
-    let creds_path = config_dir.join("device.json");
-    if !creds_path.exists() {
-        return Ok(serde_json::json!(null));
-    }
-    let data = fs::read_to_string(creds_path).map_err(|e| e.to_string())?;
-    let json: serde_json::Value = serde_json::from_str(&data).map_err(|e| e.to_string())?;
-    Ok(json)
+    
+    // Offload blocking I/O to a dedicated thread to prevent hanging the async runtime
+    let result = tauri::async_runtime::spawn_blocking(move || -> Result<serde_json::Value, String> {
+        let creds_path = config_dir.join("device.json");
+        println!("[Backend] Checking credentials at: {:?}", creds_path);
+        
+        if !creds_path.exists() {
+            println!("[Backend] No device.json found - assuming fresh install");
+            return Ok(serde_json::json!(null));
+        }
+
+        println!("[Backend] Reading device.json...");
+        let data = std::fs::read_to_string(creds_path)
+            .map_err(|e| format!("Failed to read file: {}", e))?;
+            
+        let json: serde_json::Value = serde_json::from_str(&data)
+            .map_err(|e| format!("Invalid JSON: {}", e))?;
+            
+        println!("[Backend] Credentials loaded successfully");
+        Ok(json)
+    }).await
+    .map_err(|e| format!("Task join error: {}", e))
+    .and_then(|r| r)?;
+
+    Ok(result)
 }
 
 /// Send heartbeat to backend to keep device online

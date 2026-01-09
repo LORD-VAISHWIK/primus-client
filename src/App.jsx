@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import AuthCombined from "./login-and-register";
 import { getUserFromToken, isTokenValid } from "./utils/jwt";
 import { getApiBase, authHeaders, flushQueue, showToast, csrfHeaders } from "./utils/api";
@@ -94,7 +94,7 @@ export default function App() {
             try {
                 // Get time remaining
                 const timeRes = await axios.get(`${getApiBase()}/api/billing/estimate-timeleft`, {
-                    params: { pc_id: pcId },
+                    params: { pc_id: pcId, _t: Date.now() },
                     headers: authHeaders()
                 });
                 setMinutesLeft(timeRes.data?.minutes ?? 0);
@@ -103,28 +103,20 @@ export default function App() {
             }
 
             try {
-                // Get wallet balance
-                const balanceRes = await axios.get(`${getApiBase()}/api/balance/`, {
+                // Get wallet balance and coins (consolidated endpoint)
+                const balanceRes = await axios.get(`${getApiBase()}/api/wallet/balance`, {
+                    params: { _t: Date.now() },
                     headers: authHeaders()
                 });
-                setCashBalance(balanceRes.data?.amount ?? 0);
+                setCashBalance(balanceRes.data?.balance ?? 0);
+                setGgCoins(balanceRes.data?.coins ?? 0);
             } catch (e) {
-                console.warn('[Primus] Failed to fetch balance:', e);
-            }
-
-            try {
-                // Get coins
-                const coinsRes = await axios.get(`${getApiBase()}/api/coins/`, {
-                    headers: authHeaders()
-                });
-                setGgCoins(coinsRes.data?.amount ?? 0);
-            } catch (e) {
-                console.warn('[Primus] Failed to fetch coins:', e);
+                console.warn('[Primus] Failed to fetch balance/coins:', e);
             }
         };
 
         fetchBalances();
-        const interval = setInterval(fetchBalances, 30000); // Refresh every 30s
+        const interval = setInterval(fetchBalances, 20000); // Refresh every 20s for faster time sync
         return () => clearInterval(interval);
     }, [currentUser, pcId]);
 
@@ -203,7 +195,13 @@ export default function App() {
                                 const res = await axios.post(
                                     `${getApiBase()}/api/clientpc/heartbeat/${pcId}`,
                                     null,
-                                    { headers: { ...authHeaders(), ...csrfHeaders() } }
+                                    {
+                                        headers: {
+                                            ...authHeaders(),
+                                            ...csrfHeaders(),
+                                            'X-PC-ID': String(pcId)
+                                        }
+                                    }
                                 );
                                 setLocked(res?.data?.status === 'locked');
                             } catch (httpErr) {
@@ -220,7 +218,7 @@ export default function App() {
                     try {
                         if (!pcId) return;
                         const res = await axios.post(
-                            `${getApiBase()}/api/command/fetch`,
+                            `${getApiBase()}/api/command/pull`,
                             new URLSearchParams({ pc_id: String(pcId) }),
                             { headers: { ...authHeaders(), 'Content-Type': 'application/x-www-form-urlencoded', ...csrfHeaders() } }
                         );
@@ -332,29 +330,27 @@ export default function App() {
 
     // Main app with new UI
     return (
-        <Router>
-            <div className="app">
-                <Header
-                    user={headerUser}
-                    minutesLeft={minutesLeft}
-                    cashBalance={cashBalance}
-                    ggCoins={ggCoins}
-                    onLogout={handleLogout}
-                />
-                <main className="main-layout">
-                    <Routes>
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="/games" element={<GamesPage />} />
-                        <Route path="/arcade" element={<ArcadePage />} />
-                        <Route path="/apps" element={<AppsPage />} />
-                        <Route path="/shop" element={<ShopPage />} />
-                        <Route path="/vault" element={<VaultPage />} />
-                        <Route path="/account" element={<AccountPage />} />
-                        <Route path="/settings" element={<PCSettingsPage />} />
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                </main>
-            </div>
-        </Router>
+        <div className="app">
+            <Header
+                user={headerUser}
+                minutesLeft={minutesLeft}
+                cashBalance={cashBalance}
+                ggCoins={ggCoins}
+                onLogout={handleLogout}
+            />
+            <main className="main-layout">
+                <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/games" element={<GamesPage />} />
+                    <Route path="/arcade" element={<ArcadePage />} />
+                    <Route path="/apps" element={<AppsPage />} />
+                    <Route path="/shop" element={<ShopPage />} />
+                    <Route path="/vault" element={<VaultPage />} />
+                    <Route path="/account" element={<AccountPage />} />
+                    <Route path="/settings" element={<PCSettingsPage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </main>
+        </div>
     );
 }
